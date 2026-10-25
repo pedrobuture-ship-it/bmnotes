@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-  Background, BackgroundVariant, ConnectionMode, Controls, MiniMap, ReactFlow, SelectionMode, applyEdgeChanges, applyNodeChanges, getViewportForBounds,
+  ConnectionMode, Controls, MiniMap, ReactFlow, SelectionMode, applyEdgeChanges, applyNodeChanges, getViewportForBounds,
   useReactFlow, useStore, type Connection, type Edge, type EdgeChange, type Node, type NodeChange, type NodeTypes, type EdgeTypes,
   ViewportPortal,
 } from "@xyflow/react";
@@ -8,6 +8,7 @@ import "@xyflow/react/dist/style.css";
 import { FileDown, AlignCenterHorizontal, AlignCenterVertical, AlignEndHorizontal, AlignEndVertical, AlignHorizontalDistributeCenter, AlignStartHorizontal, AlignStartVertical, AlignVerticalDistributeCenter, BoxSelect, Copy, Lock, ExternalLink, FilePlus, Frame as FrameIcon, Maximize, Pencil, Trash2 } from "lucide-react";
 import { useBoard, MAIN_BOARD } from "@/stores/board";
 import { BoardTabs } from "./BoardTabs";
+import { BoardBackground } from "./BoardBackground";
 import { useTr } from "@/lib/i18n";
 import { exportBoardAsHtml } from "@/lib/exportAction";
 import { firstCard, nearestInDirection, type Dir } from "@/lib/boardNav";
@@ -22,7 +23,7 @@ import { FrameNode, type FrameNodeData } from "./FrameNode";
 import { SketchEdge } from "./SketchEdge";
 import { onBoardCommand } from "./boardBus";
 import { copyPath, deleteEntry, lockNote, removeEdge, duplicateNote, newFrameTitle, otherMurals, revealInFolder, sendToMural } from "@/lib/actions";
-import { CARD_COLORS, type CardColor } from "@/types";
+import { CARD_COLORS, type CardColor, type Viewport } from "@/types";
 import { CARD_H, CARD_W } from "@/lib/board";
 import { basename, stripExt } from "@/lib/paths";
 import { isEncrypted } from "@/lib/crypto";
@@ -30,6 +31,8 @@ import { isEncrypted } from "@/lib/crypto";
 const nodeTypes: NodeTypes = { note: NoteNode, frame: FrameNode };
 const edgeTypes: EdgeTypes = { sketch: SketchEdge };
 const FRAME = "frame:";
+const PAN_BUTTONS = [1, 2];
+const SNAP_GRID: [number, number] = [22, 22];
 const MINIMAP_COLORS: Record<CardColor, string> = {
   paper: "#ece3cf", yellow: "#ecdc92", green: "#cfdcb8", blue: "#c1d4dd", pink: "#edcacf", purple: "#d6cbe1", dark: "#4a4038",
 };
@@ -74,11 +77,26 @@ export function Board() {
   const setEditing = useUi((s) => s.setEditingCard);
   const setRenaming = useUi((s) => s.setRenamingCard);
   const openNote = useUi((s) => s.openNote);
+  const { menu, open: openMenu, close } = useContextMenu();
   const rf = useReactFlow();
+  const rootRef = useRef<HTMLDivElement>(null);
+  const onMoveStart = useCallback(() => {
+    close();
+    // Update presentation without a React render on every viewport frame.
+    rootRef.current?.setAttribute("data-navigating", "true");
+  }, [close]);
+  const onMoveEnd = useCallback((_: unknown, viewport: Viewport) => {
+    rootRef.current?.removeAttribute("data-navigating");
+    setViewport(viewport);
+  }, [setViewport]);
+  useEffect(() => {
+    const reset = () => rootRef.current?.removeAttribute("data-navigating");
+    window.addEventListener("blur", reset);
+    return () => window.removeEventListener("blur", reset);
+  }, []);
   const tr = useTr();
   // With thousands of links, hide the lines while zoomed far out (they're unreadable and expensive).
   const farOut = useStore((st) => st.transform[2] < 0.3);
-  const { menu, open: openMenu, close } = useContextMenu();
 
   // Start already fitted (computed up front) so thousands of cards never render at zoom 1 first.
   const [initialViewport] = useState(() => {
@@ -457,7 +475,23 @@ export function Board() {
   const recolorSelection = (c: CardColor) => patchCards(Object.fromEntries(selectedCards.map((n) => [n.id, { color: c }])));
 
   return (
-    <div className="board-root" data-grid={settings.grid}>
+    <div
+      ref={rootRef}
+      className="board-root"
+      data-grid={settings.grid}
+      onMouseDownCapture={(e) => {
+        if (e.button !== 1 && e.button !== 2) return;
+        const target = e.target as HTMLElement;
+        if (target.closest("input, textarea, .cm-editor, [contenteditable='true']")) return;
+        // React Flow marks every draggable node `nopan`, which also blocks right/middle
+        // viewport drags. Exempt this press only; left-button card dragging stays unchanged.
+        const node = target.closest(".react-flow__node.nopan");
+        if (node) {
+          node.classList.remove("nopan");
+          queueMicrotask(() => node.classList.add("nopan"));
+        }
+      }}
+    >
       <ReactFlow
         nodes={nodes}
         edges={farOut && edges.length > 600 ? [] : edges}
@@ -469,7 +503,8 @@ export function Board() {
         onNodeDrag={onNodeDrag}
         onNodeDragStop={onNodeDragStop}
         onConnect={onConnect}
-        onMoveEnd={(_, vp) => setViewport(vp)}
+        onMoveStart={onMoveStart}
+        onMoveEnd={onMoveEnd}
         onNodeClick={(_, n) => {
           const ed = useUi.getState().editingCard;
           if (ed && ed !== n.id) setEditing(null);
@@ -477,6 +512,15 @@ export function Board() {
         onPaneClick={() => setEditing(null)}
         onPaneContextMenu={(e) => {
           const ev = e as unknown as MouseEvent;
+          // React Flow dispatches this after a stationary right click, including on a card.
+          // A right-button drag must never leave a menu over the zoom/pan surface.
+          const node = ev.target instanceof Element ? ev.target.closest<HTMLElement>(".react-flow__node") : null;
+          const id = node?.dataset.id;
+          if (id) {
+            if (id.startsWith(FRAME)) showFrameMenu(id.slice(FRAME.length), ev.clientX, ev.clientY);
+            else showMenu(id, ev.clientX, ev.clientY);
+            return;
+          }
           const pos = rf.screenToFlowPosition({ x: ev.clientX, y: ev.clientY });
           openMenu(ev, [
             { label: "New note here", icon: <FilePlus size={15} />, onSelect: () => void createNoteAt(pos) },
@@ -497,19 +541,19 @@ export function Board() {
         deleteKeyCode={null}
         selectionOnDrag
         selectionMode={SelectionMode.Partial}
-        panOnDrag={[1, 2]}
+        panOnDrag={PAN_BUTTONS}
         panActivationKeyCode="Space"
         multiSelectionKeyCode={["Shift", "Control", "Meta"]}
         selectNodesOnDrag={false}
         connectionMode={ConnectionMode.Loose}
         snapToGrid={settings.snap}
-        snapGrid={[22, 22]}
-        onlyRenderVisibleElements
+        snapGrid={SNAP_GRID}
+        onlyRenderVisibleElements={noteCount > 150}
         nodeDragThreshold={3}
         colorMode={theme}
         aria-label={tr("Mural canvas")}
       >
-        {settings.grid && <Background variant={BackgroundVariant.Dots} gap={22} size={1.6} color={theme === "light" ? "rgb(90 65 20 / 0.2)" : "rgb(255 255 255 / 0.11)"} />}
+        {settings.grid && <BoardBackground theme={theme} />}
         {(guides.x !== null || guides.y !== null) && (
           <ViewportPortal>
             {guides.x !== null && <div className="snap-guide v" style={{ transform: `translate(${guides.x}px, -100000px)` }} />}

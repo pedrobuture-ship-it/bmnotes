@@ -305,6 +305,8 @@ export const useBoard = create<BoardState>((set, get) => {
         return { ...b, labels };
       }),
     setViewport: (viewport) => {
+      const previous = get().board.viewport;
+      if (previous.x === viewport.x && previous.y === viewport.y && previous.zoom === viewport.zoom) return;
       set({ board: { ...get().board, viewport } });
       if (get().hasFile) schedulePersist(get, set);
     },

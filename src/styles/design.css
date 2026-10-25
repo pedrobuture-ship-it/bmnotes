@@ -21,10 +21,8 @@ button:disabled { cursor: not-allowed; }
 
 * { scrollbar-width: thin; scrollbar-color: var(--line) transparent; }
 
-/* ---------- paper texture (tiny inline SVG noise, no images) ---------- */
-:root {
-  --noise: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 .55 0'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)' opacity='.16'/%3E%3C/svg%3E");
-}
+/* Filter-free grain: WebKit need not recalculate SVG turbulence while scaling cards. */
+:root { --noise: url("/paper-grain.svg"); }
 
 /* ---------- design-system classes ---------- */
 
@@ -35,7 +33,6 @@ button:disabled { cursor: not-allowed; }
   color: var(--paper-ink);
   background-color: var(--paper);
   background-image: var(--noise);
-  background-blend-mode: multiply;
   border-radius: 3px 5px 3px 6px / 6px 3px 5px 3px;
   box-shadow: var(--shadow-paper);
 }
@@ -44,7 +41,7 @@ button:disabled { cursor: not-allowed; }
 .paper-card[data-color="blue"] { --paper: var(--card-blue); }
 .paper-card[data-color="pink"] { --paper: var(--card-pink); }
 .paper-card[data-color="purple"] { --paper: var(--card-purple); }
-.paper-card[data-color="dark"] { --paper: var(--card-dark); color: var(--ink); background-blend-mode: screen; }
+.paper-card[data-color="dark"] { --paper: var(--card-dark); color: var(--ink); }
 
 /* sketch-border: wobbly hand-drawn outline using irregular radii */
 .sketch-border {
@@ -92,7 +89,6 @@ button:disabled { cursor: not-allowed; }
   color: var(--paper-ink);
   background-color: var(--card-yellow);
   background-image: var(--noise);
-  background-blend-mode: multiply;
   border-radius: 2px 3px 2px 4px;
   box-shadow: 1px 2px 4px rgb(0 0 0 / 0.45);
   transform: rotate(-1.4deg);

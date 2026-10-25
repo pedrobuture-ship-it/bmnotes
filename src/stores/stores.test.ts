@@ -278,3 +278,17 @@ describe("edits during asynchronous filesystem work", () => {
     expect(useWorkspace.getState().notes["b.md"].saved).toBe("latest");
   });
 });
+
+describe("viewport persistence", () => {
+  it("does not mutate or persist the board when a navigation ends at the same viewport", async () => {
+    await useWorkspace.getState().openWorkspace("/w");
+    const before = useBoard.getState().board;
+    const write = vi.spyOn(ipc, "writeMeta");
+    useBoard.getState().setViewport({ ...before.viewport });
+    expect(useBoard.getState().board).toBe(before);
+    expect(write).not.toHaveBeenCalled();
+    useBoard.getState().setViewport({ ...before.viewport, x: before.viewport.x + 100 });
+    expect(useBoard.getState().board.viewport.x).toBe(before.viewport.x + 100);
+    expect(useBoard.getState().board.cards).toBe(before.cards);
+  });
+});

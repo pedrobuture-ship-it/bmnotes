@@ -166,3 +166,47 @@ Os testes Rust incluem monitor real de filesystem sem realimentação, detecçã
 edições externas e migração de layout/configuração/lixeira. O build Tauri de
 produção sem instaladores também compilou o executável `bmnotes`. O cache antigo
 de permissões Tauri foi recompilado para resolver os caminhos obsoletos.
+
+
+## Retorno: mover a visão com botão direito e ampliar/reduzir com scroll
+
+O caso informado depois da instalação usa 18 notas pequenas. A investigação foi
+refeita no WebKitGTK 4.1 em Wayland com dados sintéticos, além dos testes Chromium
+anteriores. Isso não foi tratado como um problema de quantidade de notas.
+
+Foi reproduzido um bloqueio funcional: o React Flow acrescenta `nopan` ao wrapper
+de todos os cartões arrastáveis. Assim, um arraste direito iniciado no cartão
+não move a visão e o menu contextual pode ficar sobre a superfície do mural.
+O cartão continua arrastável com o botão esquerdo; somente a pressão dos botões
+direito/central recebe uma exceção temporária ao filtro de pan. Campos de texto
+e o editor permanecem protegidos. O menu de cartão é suprimido durante o gesto,
+mas continua disponível no clique direito sem deslocamento.
+
+O filtro SVG de turbulência foi substituído por um pequeno SVG sem filtros;
+cartões do mural não usam textura de fundo, e sombras/transições são simplificadas
+durante a navegação. Murais de até 150 notas mantêm os cartões montados ao mover
+a visão. Os parâmetros de pan são estáveis e finalizar um gesto sem mudar a
+visão não dispara nova gravação do layout.
+
+As reproduções nativas usaram WebKitGTK 4.1, 18 notas sintéticas e contexto
+efêmero, sem acessar as notas do usuário. Foram verificados pan direito iniciado
+em cartão, clique direito simples, pan do fundo, zoom, preservação das posições
+durante navegação e arraste esquerdo dos cartões. Os controles de performance
+não impõem limites de tempo de frames dependentes da máquina.
+
+O usuário esclareceu que o gesto começa no fundo vazio. O caso foi então
+reproduzido com zoom 0,15 e grade ligada: o teste WebKit excedeu 50 segundos.
+Com a grade desativada desde a abertura, as mesmas sequências concluíram,
+com intervalos entre frames de aproximadamente 17–22 ms nesta máquina.
+
+Causa confirmada desse caso: o fundo SVG mantém todos os pontos da grade ao
+reduzir o zoom. No mínimo 0,05, o espaçamento de 22 unidades cai para 1,1 pixel,
+criando centenas de milhares de repetições do padrão para redesenhar durante
+pan/zoom no WebKit. A nova grade dobra progressivamente o espaçamento lógico,
+preservando a origem e garantindo pelo menos 12 pixels entre pontos na tela.
+Ela continua ligada e acompanha a visão; o snap de cartões continua em 22 unidades.
+O teste original de zoom afastado passou após essa alteração, com resultados
+semelhantes aos do controle sem grade. A reprodução do fundo vazio começa em zoom 0,15; o teste unitário verifica o
+limite de densidade em todo o intervalo de zoom suportado.
+
+TypeScript, ESLint, 103 testes e o build nativo de produção passaram.

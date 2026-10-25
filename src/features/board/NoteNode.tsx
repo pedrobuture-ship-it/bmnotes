@@ -104,6 +104,7 @@ export const NoteNode = memo(function NoteNode({ data, selected, dragging }: Nod
       onContextMenu={(e) => {
         e.preventDefault();
         e.stopPropagation();
+        if (e.currentTarget.closest('.board-root[data-navigating="true"]')) return;
         onMenu(path, e.clientX, e.clientY);
       }}
     >

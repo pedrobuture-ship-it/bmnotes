@@ -116,3 +116,13 @@
 .snap-guide { position: absolute; pointer-events: none; background: var(--amber); opacity: 0.75; }
 .snap-guide.v { width: 1px; height: 200000px; }
 .snap-guide.h { height: 1px; width: 200000px; }
+
+/* Keep navigation on composited layers, without remount animations or costly paper effects. */
+.board-root .react-flow__viewport { will-change: transform; }
+.board-root .note-node { animation: none; background-image: none; }
+.board-root[data-navigating="true"] .paper-card {
+  background-image: none;
+  box-shadow: 0 2px 4px rgb(0 0 0 / 0.25);
+}
+.board-root[data-navigating="true"] .note-node,
+.board-root[data-navigating="true"] .react-flow__handle { transition: none; }

@@ -25,6 +25,7 @@ export const FrameNode = memo(function FrameNode({ data, selected }: NodeProps) 
       onContextMenu={(e) => {
         e.preventDefault();
         e.stopPropagation();
+        if (e.currentTarget.closest('.board-root[data-navigating="true"]')) return;
         onMenu(id, e.clientX, e.clientY);
       }}
     >
