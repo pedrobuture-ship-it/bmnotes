@@ -6,47 +6,12 @@ import { hashUnit } from "@/lib/board";
 import { EmptyBoard } from "@/components/doodles";
 import { useTr } from "@/lib/i18n";
 
-interface GNode { id: string; title: string; x: number; y: number; vx: number; vy: number; degree: number; tags: string[] }
-interface GEdge { s: string; t: string }
+import { WorkerQueue } from "@/lib/workerQueue";
+import type { GraphInput, GraphPosition } from "@/lib/graphLayout";
+interface GNode { id: string; title: string; x: number; y: number; degree: number; tags: string[] }
+const layouts = new WorkerQueue<GraphInput, GraphPosition[]>(() => new Worker(new URL("../../workers/graph.worker.ts", import.meta.url), { type: "module" }));
 
 const COLORS = ["#d9a441", "#86a873", "#6f9bb5", "#c98a9a", "#9c86b5", "#c8553d", "#e6c75a"];
-
-/** Small force-directed layout; runs a bounded number of iterations then rests. */
-function layout(nodes: GNode[], edges: GEdge[], iterations: number) {
-  const byId = new Map(nodes.map((n) => [n.id, n]));
-  const k = 90;
-  for (let it = 0; it < iterations; it++) {
-    const cool = 1 - it / iterations;
-    for (let i = 0; i < nodes.length; i++) {
-      const a = nodes[i]!;
-      for (let j = i + 1; j < nodes.length; j++) {
-        const b = nodes[j]!;
-        let dx = a.x - b.x;
-        let dy = a.y - b.y;
-        let d2 = dx * dx + dy * dy;
-        if (d2 > 90000) continue;
-        if (d2 < 1) { dx = hashUnit(a.id + b.id); dy = hashUnit(b.id + a.id); d2 = 1; }
-        const f = (k * k) / d2;
-        a.vx += dx * f; a.vy += dy * f; b.vx -= dx * f; b.vy -= dy * f;
-      }
-    }
-    for (const e of edges) {
-      const a = byId.get(e.s), b = byId.get(e.t);
-      if (!a || !b) continue;
-      const dx = b.x - a.x, dy = b.y - a.y;
-      const d = Math.max(1, Math.hypot(dx, dy));
-      const f = (d - k) * 0.012;
-      a.vx += (dx / d) * f * d * 0.05; a.vy += (dy / d) * f * d * 0.05;
-      b.vx -= (dx / d) * f * d * 0.05; b.vy -= (dy / d) * f * d * 0.05;
-    }
-    for (const n of nodes) {
-      n.vx -= n.x * 0.004; n.vy -= n.y * 0.004;
-      n.x += Math.max(-30, Math.min(30, n.vx)) * cool * 0.5;
-      n.y += Math.max(-30, Math.min(30, n.vy)) * cool * 0.5;
-      n.vx *= 0.6; n.vy *= 0.6;
-    }
-  }
-}
 
 function wobblyPath(a: GNode, b: GNode): string {
   const dx = b.x - a.x, dy = b.y - a.y;
@@ -67,26 +32,39 @@ export function GraphExplorer() {
   const [hover, setHover] = useState<string | null>(null);
   const [view, setView] = useState({ x: 0, y: 0, k: 1 });
   const svgRef = useRef<SVGSVGElement>(null);
+  const [size, setSize] = useState({ width: 1200, height: 800 });
   const drag = useRef<{ x: number; y: number; vx: number; vy: number } | null>(null);
 
-  const { nodes, edges } = useMemo(() => {
-    const list: GNode[] = [...meta.values()].map((m, i) => ({
-      id: m.path, title: m.title, tags: m.tags, degree: 0,
-      x: Math.cos(i * 2.4) * (40 + i * 6), y: Math.sin(i * 2.4) * (40 + i * 6), vx: 0, vy: 0,
-    }));
-    const es: GEdge[] = [];
-    const deg = new Map<string, number>();
-    for (const m of meta.values()) {
-      for (const t of m.links) {
-        es.push({ s: m.path, t });
-        deg.set(m.path, (deg.get(m.path) ?? 0) + 1);
-        deg.set(t, (deg.get(t) ?? 0) + 1);
-      }
+  // Titles/tags/content can change without changing the graph's topology.
+  const signature = useMemo(() => JSON.stringify([...meta.values()].map((m) => [m.path, m.links])), [meta]);
+  const input = useMemo<GraphInput>(() => {
+    const entries = JSON.parse(signature) as [string, string[]][];
+    return { paths: entries.map(([path]) => path), edges: entries.flatMap(([s, links]) => links.map((t) => ({ s, t }))) };
+  }, [signature]);
+  const [positions, setPositions] = useState<{ input: GraphInput; points: GraphPosition[] } | null>(null);
+  const [layoutError, setLayoutError] = useState(false);
+  useEffect(() => {
+    if (input.paths.length === 0) return;
+    let cancelled = false;
+    setLayoutError(false);
+    const job = layouts.submit(input);
+    job.promise.then((points) => {
+      if (!cancelled) setPositions({ input, points });
+    }).catch(() => { if (!cancelled) setLayoutError(true); });
+    return () => { cancelled = true; job.cancel(); };
+  }, [input]);
+  const edges = input.edges;
+  const nodes = useMemo<GNode[]>(() => {
+    const degree = new Map<string, number>();
+    for (const e of input.edges) {
+      degree.set(e.s, (degree.get(e.s) ?? 0) + 1);
+      degree.set(e.t, (degree.get(e.t) ?? 0) + 1);
     }
-    for (const n of list) n.degree = deg.get(n.id) ?? 0;
-    layout(list, es, list.length > 1500 ? 60 : 220);
-    return { nodes: list, edges: es };
-  }, [meta]);
+    // Show deterministic initial positions if the worker fails; navigation still works.
+    const points = positions?.input === input ? positions.points : input.paths.map((id, i) => ({ id, x: Math.cos(i * 2.4) * (40 + i * 6), y: Math.sin(i * 2.4) * (40 + i * 6) }));
+    return points.map((p) => ({ ...p, title: meta.get(p.id)?.title ?? p.id, tags: meta.get(p.id)?.tags ?? [], degree: degree.get(p.id) ?? 0 }));
+  }, [positions, input, meta]);
+  const pending = positions?.input !== input && nodes.length > 0 && !layoutError;
 
   const byId = useMemo(() => new Map(nodes.map((n) => [n.id, n])), [nodes]);
   const q = query.trim().toLowerCase();
@@ -117,10 +95,16 @@ export function GraphExplorer() {
         return { k, x: mx - ((mx - v.x) * k) / v.k, y: my - ((my - v.y) * k) / v.k };
       });
     };
+    const resize = new ResizeObserver(([entry]) => {
+      if (entry) setSize({ width: entry.contentRect.width, height: entry.contentRect.height });
+    });
+    resize.observe(el);
     el.addEventListener("wheel", wheel, { passive: false });
-    return () => el.removeEventListener("wheel", wheel);
+    return () => { resize.disconnect(); el.removeEventListener("wheel", wheel); };
   }, []);
 
+  const bounds = { left: (-size.width / 2 - view.x - 80) / view.k, right: (size.width / 2 - view.x + 80) / view.k, top: (-size.height / 2 - view.y - 80) / view.k, bottom: (size.height / 2 - view.y + 80) / view.k };
+  const visibleNodes = nodes.filter((n) => n.x >= bounds.left && n.x <= bounds.right && n.y >= bounds.top && n.y <= bounds.bottom);
   const allTags = useMemo(() => [...tagsIdx.entries()].sort((a, b) => b[1].length - a[1].length).slice(0, 12), [tagsIdx]);
 
   if (nodes.length === 0) {
@@ -130,7 +114,8 @@ export function GraphExplorer() {
   }
 
   return (
-    <div className="graph-root">
+    <div className="graph-root" aria-busy={pending}>
+      {pending && <span className="sr-only" role="status">{tr("Laying out the graph…")}</span>}
       <div className="board-hud">
         <div className="relative" style={{ width: 240 }}>
           <Search size={15} className="absolute" style={{ left: 10, top: 10, color: "var(--ink-faint)" }} />
@@ -161,11 +146,14 @@ export function GraphExplorer() {
           {edges.map((e, i) => {
             const a = byId.get(e.s), b = byId.get(e.t);
             if (!a || !b) return null;
+            // Include a margin for the curved edge; distant SVG elements need not mount.
+            const margin = Math.hypot(b.x - a.x, b.y - a.y) * 0.12;
+            if (Math.max(a.x, b.x) + margin < bounds.left || Math.min(a.x, b.x) - margin > bounds.right || Math.max(a.y, b.y) + margin < bounds.top || Math.min(a.y, b.y) - margin > bounds.bottom) return null;
             const hot = hover !== null && (e.s === hover || e.t === hover);
             const dim = (hover !== null && !hot) || !matches(a) || !matches(b);
             return <path key={i} className="graph-edge" d={wobblyPath(a, b)} data-hot={hot} data-dim={dim} />;
           })}
-          {nodes.map((n) => {
+          {visibleNodes.map((n) => {
             const dim = !matches(n) || (hover !== null && !neighbors.has(n.id));
             const r = 6 + Math.min(14, Math.sqrt(n.degree) * 3.2);
             const color = COLORS[Math.floor((hashUnit(n.tags[0] ?? "x") + 1) * 3.49) % COLORS.length]!;

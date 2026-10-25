@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const files = new Map<string, string>();
 const meta = new Map<string, string>();
@@ -31,6 +31,8 @@ vi.mock("@/lib/ipc", () => ({
 }));
 
 import { useWorkspace } from "./workspace";
+import { ipc } from "@/lib/ipc";
+afterEach(() => vi.restoreAllMocks());
 import { useBoard } from "./board";
 import { useUi } from "./ui";
 import { useSettings } from "./settings";
@@ -53,7 +55,7 @@ describe("workspace store", () => {
     expect(Object.keys(s.notes).sort()).toEqual(["a.md", "b.md"]);
     expect(s.index.backlinks.get("b.md")).toEqual(["a.md"]);
     expect(Object.keys(useBoard.getState().board.cards).sort()).toEqual(["a.md", "b.md"]);
-    // Opening must not create .mural metadata by itself.
+    // Opening must not create .bmnotes metadata by itself.
     expect(meta.size).toBe(0);
   });
 
@@ -213,5 +215,66 @@ describe("navigation", () => {
     vi.spyOn(useUi.getState(), "choose").mockResolvedValue("skip");
     await useWorkspace.getState().renameEntry("b.md", "z.md");
     expect(useSettings.getState().settings.nav.pinned).toEqual(["z.md"]);
+  });
+});
+
+
+describe("filesystem rescan coalescing", () => {
+  it("preserves the index and note identities when a scan finds no structural changes", async () => {
+    await useWorkspace.getState().openWorkspace("/w");
+    const before = useWorkspace.getState();
+    const scan = vi.spyOn(ipc, "scan");
+    await Promise.all(Array.from({ length: 20 }, () => useWorkspace.getState().syncWithDisk()));
+    expect(scan).toHaveBeenCalledTimes(1);
+    const after = useWorkspace.getState();
+    expect(after.index).toBe(before.index);
+    expect(after.notes).toBe(before.notes);
+    expect(after.tree).toBe(before.tree);
+  });
+});
+
+
+describe("edits during asynchronous filesystem work", () => {
+  it("does not replace newer typing with a snapshot taken before a disk read", async () => {
+    await useWorkspace.getState().openWorkspace("/w");
+    let release!: () => void;
+    const gate = new Promise<void>((resolve) => { release = resolve; });
+    vi.spyOn(ipc, "readNote").mockImplementationOnce(async (path) => {
+      await gate;
+      return { path, content: "external", mtime: 2, created: 1 };
+    });
+    const reading = useWorkspace.getState().handleFsChange({ changed: ["b.md"], removed: [], structure: false });
+    useWorkspace.getState().setContent("b.md", "typed while reading");
+    release();
+    await reading;
+    expect(useWorkspace.getState().notes["b.md"].content).toBe("typed while reading");
+    expect(useWorkspace.getState().notes["b.md"].conflict).toBe("external");
+  });
+
+  it("serializes overlapping saves and waits for already-running writes when flushing", async () => {
+    await useWorkspace.getState().openWorkspace("/w");
+    let release!: () => void;
+    let started!: () => void;
+    const gate = new Promise<void>((resolve) => { release = resolve; });
+    const start = new Promise<void>((resolve) => { started = resolve; });
+    const spy = vi.spyOn(ipc, "writeNote").mockImplementationOnce(async () => {
+      started();
+      await gate;
+      return 3;
+    });
+    useWorkspace.getState().setContent("b.md", "first");
+    const first = useWorkspace.getState().saveNow("b.md");
+    await start;
+    useWorkspace.getState().setContent("b.md", "latest");
+    const second = useWorkspace.getState().saveNow("b.md");
+    let flushed = false;
+    const flush = useWorkspace.getState().flushAll().then(() => { flushed = true; });
+    await Promise.resolve();
+    expect(spy).toHaveBeenCalledTimes(1);
+    expect(flushed).toBe(false);
+    release();
+    await Promise.all([first, second, flush]);
+    expect(spy.mock.calls.map((args) => args[1])).toEqual(["first", "latest"]);
+    expect(useWorkspace.getState().notes["b.md"].saved).toBe("latest");
   });
 });

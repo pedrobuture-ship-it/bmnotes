@@ -3,7 +3,7 @@
 Pedidos feitos durante o desenvolvimento, em ordem. O Client ID do GitHub OAuth App (público, sem segredo) é `Ov23li8KuIIKb5wDdfrb`.
 
 1. Descobrir onde fica o repositório remoto do projeto.
-2. Renomear o app para **b&m notes** e trocar o logo por um lobo em arte desenhada.
+2. Renomear o app para **bmnotes** e trocar o logo por um lobo em arte desenhada.
 3. Commit e push.
 4. Criar um **modo claro amarelado**, mantendo o modo escuro atual.
 5. Facilitar ligar os cards: **duas bolinhas, uma de cada lado**, para puxar e ligar um card no outro.
@@ -38,7 +38,7 @@ Pedido original: *"faça vários murais por pasta, escrita, busca e navegação,
 Cada item abaixo é um prompt autocontido; a implementação segue a ordem numérica.
 
 ## 1. Vários murais por pasta
-> Permita vários murais na mesma pasta. O mural atual (`.mural/board.json`) continua sendo o mural "Main", que mostra todas as notas. Murais extras ficam em `.mural/boards/<id>.json` e são curados: só mostram as notas adicionadas a eles. Crie um seletor de murais (abas) na vista do mural com criar (vazio ou cópia do atual), renomear e apagar. Em murais extras, "Delete" no card só tira do mural, nunca apaga o arquivo. Adicione "Add to board" no menu da nota. O sync precisa fazer merge por card também nesses arquivos. Mantenha compatibilidade total com pastas antigas.
+> Permita vários murais na mesma pasta. O mural atual (`.bmnotes/board.json`) continua sendo o mural "Main", que mostra todas as notas. Murais extras ficam em `.bmnotes/boards/<id>.json` e são curados: só mostram as notas adicionadas a eles. Crie um seletor de murais (abas) na vista do mural com criar (vazio ou cópia do atual), renomear e apagar. Em murais extras, "Delete" no card só tira do mural, nunca apaga o arquivo. Adicione "Add to board" no menu da nota. O sync precisa fazer merge por card também nesses arquivos. Mantenha compatibilidade total com pastas antigas.
 
 ## 2. Modelos de nota
 > Comando "New note from template". Modelos vêm da pasta `templates/` do workspace e de 3 modelos embutidos (reunião, projeto, leitura). Variáveis `{{title}}`, `{{date}}`, `{{time}}`. Um seletor com busca; depois pede o título e cria a nota já aberta.
@@ -53,7 +53,7 @@ Cada item abaixo é um prompt autocontido; a implementação segue a ordem numé
 > Na página da nota, mostre "menções sem link" (outras notas que citam o título mas não linkam) com botão "Linkar". Crie uma tela de Tarefas que junte todos os `- [ ]`/`- [x]` de todas as notas, com filtro, agrupamento por nota, marcar direto na tela e abrir a nota.
 
 ## 6. Buscas salvas
-> Na busca, permita salvar a consulta atual com um nome. Buscas salvas aparecem no topo da barra lateral e na paleta de comandos e reabrem a busca com a consulta preenchida. Ficam em `.mural/settings.json`.
+> Na busca, permita salvar a consulta atual com um nome. Buscas salvas aparecem no topo da barra lateral e na paleta de comandos e reabrem a busca com a consulta preenchida. Ficam em `.bmnotes/settings.json`.
 
 ## 7. Navegação: voltar/avançar, recentes e fixadas
 > Histórico de navegação (nota/mural/grafo) com `Alt+←` / `Alt+→` e botões no cabeçalho. Notas fixadas (menu de contexto "Pin") e recentes (últimas 8) no topo da lista de notas.
@@ -71,7 +71,7 @@ Cada item abaixo é um prompt autocontido; a implementação segue a ordem numé
 > Tela "Vault health": links quebrados (com sugestão do nome mais parecido e botões "Corrigir" e "Criar nota"), notas órfãs e notas sem título. Atualiza ao vivo.
 
 ## 12. Atalhos configuráveis
-> Todos os atalhos globais passam a ser configuráveis em Configurações → Keyboard (gravar nova combinação, detectar conflito, restaurar padrão). Salvos em `.mural/settings.json`.
+> Todos os atalhos globais passam a ser configuráveis em Configurações → Keyboard (gravar nova combinação, detectar conflito, restaurar padrão). Salvos em `.bmnotes/settings.json`.
 
 ## 13. Criptografar nota com senha
 > "Encrypt note…" cifra a nota com senha (AES-GCM 256, chave derivada por PBKDF2). O arquivo guarda só o texto cifrado; a nota aparece como bloqueada (cartão e página). "Unlock" decifra para edição e lembra a senha só em memória, com botão "Lock again". Testes de ida e volta e de senha errada.
@@ -88,7 +88,7 @@ Regra do produto: **nenhuma função de IA/LLM** no app. Tudo abaixo é determin
 
 ## Colaboração
 
-**C1. Presença** — Plano: cada pessoa publica um commit mínimo (`{login, nota, hora}`) numa branch própria `bm-presence-<login>` do repositório (force-push, sem poluir a `main`); o ciclo de sync já faz `fetch`, então basta ler as branches dos outros. Aparece "Fulano está nesta nota" na página da nota. Desligável (Sync → Presença). Expira em 3 min.
+**C1. Presença** — Plano: cada pessoa publica um commit mínimo (`{login, nota, hora}`) numa branch própria `bmnotes-presence-<login>` do repositório (force-push, sem poluir a `main`); o ciclo de sync já faz `fetch`, então basta ler as branches dos outros. Aparece "Fulano está nesta nota" na página da nota. Desligável (Sync → Presença). Expira em 3 min.
 **C2. Aviso antes de conflitar** — Plano: `status()` passa a calcular `remoteChanged` (`git diff --name-only HEAD...origin/<branch>`). Se a nota aberta está nessa lista, banner "mudou no remoto" com botão "Sincronizar agora".
 **C3. Compartilhar só parte** — Plano: lista de caminhos privados (por máquina) gravada num bloco gerenciado de `.git/info/exclude`; arquivos já rastreados exigem confirmação ("o outro perde a cópia") e saem do repositório com `git rm --cached`. Menu "Não sincronizar" em notas e murais.
 
@@ -112,7 +112,7 @@ Regra do produto: **nenhuma função de IA/LLM** no app. Tudo abaixo é determin
 ## Produto
 
 **P1. Instalador e atualização** — Plano: workflow do GitHub Actions (tauri-action) que gera AppImage, .deb, .exe/.msi e .dmg numa release; verificação de atualização opcional pela API de releases (sem chave de assinatura).
-**P2. Plugins** — Plano: scripts `.mural/plugins/*.js` locais (nunca sincronizados), executados num Worker isolado sem rede, só com a API de comandos por mensagens, e só depois de aprovação por hash.
+**P2. Plugins** — Plano: scripts `.bmnotes/plugins/*.js` locais (nunca sincronizados), executados num Worker isolado sem rede, só com a API de comandos por mensagens, e só depois de aprovação por hash.
 **P3. Modo foco** — Plano: esconde cabeçalho e barra lateral; atalho próprio; `Esc` sai.
 **P4. Idiomas** — Plano: dicionário `t()` com inglês e português do Brasil, seletor em Aparência, cobrindo a interface principal.
 **P5. Acessibilidade** — Plano: setas navegam entre cards, Enter abre, Shift+setas movem; rótulos ARIA e região "live" anunciando a seleção.

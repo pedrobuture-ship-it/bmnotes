@@ -5,7 +5,7 @@ import { useSettings } from "@/stores/settings";
 import { useUi } from "@/stores/ui";
 import { useWorkspace } from "@/stores/workspace";
 
-const KEY = "bm.update.last";
+const KEY = "bmnotes.update.last";
 const DAY = 86_400_000;
 
 /** Opt-in: once a day, tell the user when a newer release exists. */

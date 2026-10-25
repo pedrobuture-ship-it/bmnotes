@@ -3,7 +3,7 @@
 use serde::{Deserialize, Serialize};
 use tauri::AppHandle;
 
-const REPO: &str = "pedrobuture-ship-it/buturenotes";
+const REPO: &str = "pedrobuture-ship-it/bmnotes";
 
 #[derive(Serialize, Debug, PartialEq)]
 #[serde(rename_all = "camelCase")]

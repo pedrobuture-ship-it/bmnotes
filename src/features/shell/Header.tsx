@@ -21,9 +21,9 @@ export function Header() {
   const next = theme === "dark" ? "light" : "dark";
   return (
     <header className="header">
-      <button className="logo" onClick={toggleSidebar} aria-label={`b&m notes — ${tr("Toggle sidebar")}`} data-tip={`${tr("Toggle sidebar")} (Ctrl+B)`}>
+      <button className="logo" onClick={toggleSidebar} aria-label={`bmnotes — ${tr("Toggle sidebar")}`} data-tip={`${tr("Toggle sidebar")} (Ctrl+B)`}>
         <LogoMark />
-        <span>b&amp;m <b>notes</b></span>
+        <span>bm<b>notes</b></span>
       </button>
       <button className="btn btn-ghost btn-icon" disabled={!canBack} onClick={() => useUi.getState().goBack()} aria-label={tr("Back")} data-tip={`${tr("Back")} (Alt+←)`}><ChevronLeft size={17} /></button>
       <button className="btn btn-ghost btn-icon" disabled={!canForward} onClick={() => useUi.getState().goForward()} aria-label={tr("Forward")} data-tip={`${tr("Forward")} (Alt+→)`}><ChevronRight size={17} /></button>

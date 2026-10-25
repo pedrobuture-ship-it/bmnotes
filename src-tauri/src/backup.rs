@@ -11,7 +11,7 @@ use zip::write::SimpleFileOptions;
 type Res<T> = Result<T, String>;
 
 /// Folders that never go into a backup (the trash and old backups would only bloat it).
-const SKIP_DIRS: [&str; 4] = [".git", "node_modules", ".mural/trash", ".mural/backups"];
+const SKIP_DIRS: [&str; 4] = [".git", "node_modules", ".bmnotes/trash", ".bmnotes/backups"];
 
 #[derive(Serialize, Debug)]
 #[serde(rename_all = "camelCase")]
@@ -155,7 +155,7 @@ mod tests {
     fn tree() -> (tempfile::TempDir, PathBuf) {
         let t = tempfile::tempdir().unwrap();
         let root = t.path().canonicalize().unwrap();
-        for (p, c) in [("a.md", "A"), ("sub/b.md", "B"), (".mural/board.json", "{}"), (".mural/trash/x/data", "t"), (".git/HEAD", "h"), ("node_modules/m/i.js", "j")] {
+        for (p, c) in [("a.md", "A"), ("sub/b.md", "B"), (".bmnotes/board.json", "{}"), (".bmnotes/trash/x/data", "t"), (".git/HEAD", "h"), ("node_modules/m/i.js", "j")] {
             let f = root.join(p);
             fs::create_dir_all(f.parent().unwrap()).unwrap();
             fs::write(f, c).unwrap();
@@ -168,7 +168,7 @@ mod tests {
         let (_t, root) = tree();
         let out = tempfile::tempdir().unwrap();
         let r = backup(&root, out.path(), "My Notes", "20260101-1200", 5).unwrap();
-        assert_eq!(names(Path::new(&r.path)), vec![".mural/board.json", "a.md", "sub/b.md"]);
+        assert_eq!(names(Path::new(&r.path)), vec![".bmnotes/board.json", "a.md", "sub/b.md"]);
         assert!(r.path.ends_with("My-Notes-20260101-1200.zip"));
         assert_eq!(r.files, 3);
     }
@@ -178,7 +178,7 @@ mod tests {
         let (_t, root) = tree();
         let inside = root.join("backups-here");
         let r = backup(&root, &inside, "n", "20260101-1200", 5).unwrap();
-        assert_eq!(names(Path::new(&r.path)), vec![".mural/board.json", "a.md", "sub/b.md"]);
+        assert_eq!(names(Path::new(&r.path)), vec![".bmnotes/board.json", "a.md", "sub/b.md"]);
     }
 
     #[test]

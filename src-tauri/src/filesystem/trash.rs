@@ -1,4 +1,4 @@
-//! Trash: deleted entries move to `.mural/trash/<id>/data` with a `meta.json` describing where they came from.
+//! Trash: deleted entries move to `.bmnotes/trash/<id>/data` with a `meta.json` describing where they came from.
 
 use super::paths::*;
 use serde::{Deserialize, Serialize};
@@ -7,7 +7,7 @@ use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::time::{SystemTime, UNIX_EPOCH};
 
-const TRASH: &str = ".mural/trash";
+const TRASH: &str = ".bmnotes/trash";
 static COUNTER: AtomicU64 = AtomicU64::new(0);
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
@@ -41,7 +41,7 @@ pub fn move_to_trash(root: &Path, rel: &str) -> Result<String, String> {
     if rel.is_empty() {
         return Err("Refusing to delete the workspace root".into());
     }
-    if rel == MURAL_DIR || rel.starts_with(".mural/") {
+    if rel == METADATA_DIR || rel.starts_with(".bmnotes/") {
         return Err("Refusing to delete workspace metadata".into());
     }
     let abs = safe_join(root, rel)?;
@@ -179,7 +179,7 @@ mod tests {
         let (_t, root) = setup();
         fs::write(root.join("a.md"), "x").unwrap();
         assert!(move_to_trash(&root, "").is_err());
-        assert!(move_to_trash(&root, ".mural").is_err());
+        assert!(move_to_trash(&root, ".bmnotes").is_err());
         assert!(move_to_trash(&root, "../x").is_err());
         assert!(restore(&root, "../../etc").is_err());
         let id = move_to_trash(&root, "a.md").unwrap();

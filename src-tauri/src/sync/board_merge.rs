@@ -1,4 +1,4 @@
-//! Three-way merge of `.mural/board.json` so moving different cards never conflicts.
+//! Three-way merge of `.bmnotes/board.json` so moving different cards never conflicts.
 use serde_json::{Map, Value};
 
 pub fn merge_board(base: Option<&str>, ours: Option<&str>, theirs: Option<&str>) -> Option<String> {

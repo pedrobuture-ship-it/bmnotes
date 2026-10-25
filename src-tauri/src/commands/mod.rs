@@ -22,6 +22,7 @@ pub fn open_workspace(app: AppHandle, state: State<'_, AppState>, path: String) 
         return Err("Not a folder".into());
     }
     std::fs::read_dir(&root).map_err(|e| format!("Cannot read folder: {e}"))?;
+    ops::migrate_metadata(&root)?;
     let name = root
         .file_name()
         .map(|n| n.to_string_lossy().into_owned())
@@ -40,30 +41,32 @@ pub fn close_workspace(state: State<'_, AppState>) -> Res<()> {
 }
 
 #[tauri::command]
-pub fn scan_workspace(state: State<'_, AppState>, ignored: Vec<String>) -> Res<Vec<ops::TreeNode>> {
-    ops::scan(&state.root()?, &ignored)
-}
-
-#[tauri::command]
-pub fn read_all_notes(state: State<'_, AppState>, ignored: Vec<String>) -> Res<Vec<ops::NoteFile>> {
-    ops::read_all(&state.root()?, &ignored)
-}
-
-#[tauri::command]
-pub fn read_note(state: State<'_, AppState>, path: String) -> Res<ops::NoteFile> {
-    ops::read_note(&state.root()?, &path)
-}
-
-#[tauri::command]
-pub fn write_note(state: State<'_, AppState>, path: String, content: String) -> Res<u64> {
+pub async fn scan_workspace(state: State<'_, AppState>, ignored: Vec<String>) -> Res<Vec<ops::TreeNode>> {
     let root = state.root()?;
-    let abs = paths::safe_join(&root, &path)?;
-    state
-        .self_writes
-        .lock()
-        .map_err(|_| "state poisoned")?
-        .insert(abs, hash_content(&content));
-    ops::write_note(&root, &path, &content)
+    tauri::async_runtime::spawn_blocking(move || ops::scan(&root, &ignored)).await.map_err(|e| e.to_string())?
+}
+
+#[tauri::command]
+pub async fn read_all_notes(state: State<'_, AppState>, ignored: Vec<String>) -> Res<Vec<ops::NoteFile>> {
+    let root = state.root()?;
+    tauri::async_runtime::spawn_blocking(move || ops::read_all(&root, &ignored)).await.map_err(|e| e.to_string())?
+}
+
+#[tauri::command]
+pub async fn read_note(state: State<'_, AppState>, path: String) -> Res<ops::NoteFile> {
+    let root = state.root()?;
+    tauri::async_runtime::spawn_blocking(move || ops::read_note(&root, &path)).await.map_err(|e| e.to_string())?
+}
+
+#[tauri::command]
+pub async fn write_note(state: State<'_, AppState>, path: String, content: String) -> Res<u64> {
+    let root = state.root()?;
+    let self_writes = state.self_writes.clone();
+    tauri::async_runtime::spawn_blocking(move || {
+        let abs = paths::safe_join(&root, &path)?;
+        self_writes.lock().map_err(|_| "state poisoned")?.insert(abs, hash_content(&content));
+        ops::write_note(&root, &path, &content)
+    }).await.map_err(|e| e.to_string())?
 }
 
 #[tauri::command]
@@ -141,9 +144,9 @@ pub struct PluginFile {
     pub code: String,
 }
 
-const PLUGIN_DIR: &str = ".mural/plugins";
+const PLUGIN_DIR: &str = ".bmnotes/plugins";
 
-/// The `.js` files of `.mural/plugins/` (at most 30, 200 KB each, no symlinks). Running them is up to the frontend sandbox.
+/// The `.js` files of `.bmnotes/plugins/` (at most 30, 200 KB each, no symlinks). Running them is up to the frontend sandbox.
 #[tauri::command]
 pub fn list_plugins(state: State<'_, AppState>) -> Res<Vec<PluginFile>> {
     let dir = paths::safe_join(&state.root()?, PLUGIN_DIR)?;
@@ -170,7 +173,7 @@ pub fn list_plugins(state: State<'_, AppState>) -> Res<Vec<PluginFile>> {
     Ok(out)
 }
 
-/// Creates `.mural/plugins/` (so it can be opened in a file manager) and returns its workspace-relative path.
+/// Creates `.bmnotes/plugins/` (so it can be opened in a file manager) and returns its workspace-relative path.
 #[tauri::command]
 pub fn ensure_plugins_dir(state: State<'_, AppState>) -> Res<String> {
     let dir = paths::safe_join(&state.root()?, PLUGIN_DIR)?;
@@ -231,11 +234,12 @@ pub fn delete_meta(state: State<'_, AppState>, file: String) -> Res<()> {
 }
 
 #[tauri::command]
-pub fn write_meta(state: State<'_, AppState>, file: String, content: String) -> Res<()> {
-    ops::write_meta(&state.root()?, &file, &content)
+pub async fn write_meta(state: State<'_, AppState>, file: String, content: String) -> Res<()> {
+    let root = state.root()?;
+    tauri::async_runtime::spawn_blocking(move || ops::write_meta(&root, &file, &content)).await.map_err(|e| e.to_string())?
 }
 
-/// Folder passed on the command line (`buturenotes /path/to/notes`), if any.
+/// Folder passed on the command line (`bmnotes /path/to/notes`), if any.
 #[tauri::command]
 pub fn launch_path() -> Option<String> {
     std::env::args()

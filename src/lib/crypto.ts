@@ -1,13 +1,13 @@
 /** Password-protected notes: AES-GCM 256 with a key derived from the password by PBKDF2-SHA256. Everything runs locally. */
 
-export const ENCRYPTED_MARK = "<!-- bm-notes:encrypted v1 -->";
+export const ENCRYPTED_MARK = "<!-- bmnotes:encrypted v1 -->";
 const ITERATIONS = 600_000;
 const SALT_BYTES = 16;
 const IV_BYTES = 12;
 const VERSION = 1;
 
 export function isEncrypted(content: string): boolean {
-  return content.startsWith(ENCRYPTED_MARK);
+  return content.startsWith(ENCRYPTED_MARK) || content.startsWith("<!-- bm-notes:encrypted v1 -->");
 }
 
 const toB64 = (b: Uint8Array) => btoa(String.fromCharCode(...b));
@@ -29,7 +29,7 @@ export async function encryptText(plain: string, password: string): Promise<stri
   blob.set(salt, 1);
   blob.set(iv, 1 + SALT_BYTES);
   blob.set(ct, 1 + SALT_BYTES + IV_BYTES);
-  return `${ENCRYPTED_MARK}\nThis note is encrypted. Open it in b&m notes and enter the password to read it.\n\n${toB64(blob)}\n`;
+  return `${ENCRYPTED_MARK}\nThis note is encrypted. Open it in bmnotes and enter the password to read it.\n\n${toB64(blob)}\n`;
 }
 
 /** Throws `Error("Wrong password or damaged note")` when the password is wrong or the text was altered. */

@@ -63,11 +63,11 @@ export interface NavEntry {
 }
 
 const RECENT_MAX = 8;
-const recentKey = (root: string) => `bm.recent:${root}`;
+const recentKey = (root: string) => `bmnotes.recent:${root}`;
 
 function loadRecent(root: string): string[] {
   try {
-    const v = JSON.parse(localStorage.getItem(recentKey(root)) ?? "[]") as unknown;
+    const v = JSON.parse(localStorage.getItem(recentKey(root)) ?? localStorage.getItem(`bm.recent:${root}`) ?? "[]") as unknown;
     return Array.isArray(v) ? v.filter((x): x is string => typeof x === "string").slice(0, RECENT_MAX) : [];
   } catch {
     return [];

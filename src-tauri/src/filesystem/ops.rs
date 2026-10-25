@@ -139,7 +139,7 @@ pub fn atomic_write(abs: &Path, content: &[u8]) -> Result<(), String> {
     let dir = abs.parent().ok_or("Invalid path")?;
     fs::create_dir_all(dir).map_err(|e| e.to_string())?;
     let tmp = dir.join(format!(
-        ".{}.mural-tmp",
+        ".{}.bmnotes-tmp",
         abs.file_name().and_then(|n| n.to_str()).unwrap_or("file")
     ));
     {
@@ -259,7 +259,17 @@ pub fn save_asset(root: &Path, assets_dir: &str, file_name: &str, bytes: &[u8]) 
     to_rel(root, &abs).ok_or_else(|| "Invalid path".into())
 }
 
-// ----- .mural metadata -----------------------------------------------------
+/// Move the legacy workspace metadata once, without overwriting an existing new directory.
+pub fn migrate_metadata(root: &Path) -> Result<(), String> {
+    let legacy = safe_join(root, ".mural")?;
+    let current = safe_join(root, METADATA_DIR)?;
+    if !current.exists() && legacy.is_dir() {
+        fs::rename(&legacy, &current).map_err(|e| format!("Cannot migrate workspace metadata: {e}"))?;
+    }
+    Ok(())
+}
+
+// ----- .bmnotes metadata -----------------------------------------------------
 
 const MAX_BACKUPS: usize = 8;
 
@@ -271,12 +281,12 @@ fn is_board_file(file: &str) -> bool {
     !id.is_empty() && id.len() <= 40 && id.chars().next().is_some_and(|c| c.is_ascii_alphanumeric()) && id.chars().all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || c == '-')
 }
 
-/// `.mural/<file>` for a whitelisted metadata file; `.mural` itself may not be a symlink out of the workspace.
+/// `.bmnotes/<file>` for a whitelisted metadata file; `.bmnotes` itself may not be a symlink out of the workspace.
 fn meta_path(root: &Path, file: &str) -> Result<std::path::PathBuf, String> {
     if !META_FILES.contains(&file) && !is_board_file(file) {
         return Err("Unknown metadata file".into());
     }
-    safe_join(root, &format!("{MURAL_DIR}/{file}"))
+    safe_join(root, &format!("{METADATA_DIR}/{file}"))
 }
 
 pub fn read_meta(root: &Path, file: &str) -> Result<Option<String>, String> {
@@ -353,7 +363,7 @@ fn snapshot(dir: &Path, target: &Path) -> Result<(), String> {
 
 /// Latest valid backup of board.json, used for recovery.
 pub fn latest_board_backup(root: &Path) -> Option<String> {
-    let backups = root.join(MURAL_DIR).join("backups");
+    let backups = root.join(METADATA_DIR).join("backups");
     let mut files: Vec<_> = fs::read_dir(backups).ok()?.flatten().map(|e| e.path()).collect();
     files.sort();
     files
@@ -480,4 +490,25 @@ mod tests {
         assert_eq!(save_asset(&root, "assets", "doc.pdf", b"%PDF").unwrap(), "assets/doc.pdf");
         assert!(save_asset(&root, "../out", "x.png", b"1").is_err());
     }
+    #[test]
+    fn migrates_legacy_metadata_without_losing_layout_settings_or_trash() {
+        let dir = tempfile::tempdir().unwrap();
+        let root = dir.path();
+        fs::create_dir_all(root.join(".mural/trash/item")).unwrap();
+        fs::write(root.join(".mural/board.json"), "layout").unwrap();
+        fs::write(root.join(".mural/settings.json"), "settings").unwrap();
+        fs::write(root.join(".mural/trash/item/data"), "deleted note").unwrap();
+        migrate_metadata(root).unwrap();
+        assert!(!root.join(".mural").exists());
+        assert_eq!(fs::read_to_string(root.join(".bmnotes/board.json")).unwrap(), "layout");
+        assert_eq!(fs::read_to_string(root.join(".bmnotes/settings.json")).unwrap(), "settings");
+        assert_eq!(fs::read_to_string(root.join(".bmnotes/trash/item/data")).unwrap(), "deleted note");
+        // An existing new-format directory always wins; never overwrite either copy.
+        fs::create_dir_all(root.join(".mural")).unwrap();
+        fs::write(root.join(".mural/board.json"), "older copy").unwrap();
+        migrate_metadata(root).unwrap();
+        assert_eq!(fs::read_to_string(root.join(".bmnotes/board.json")).unwrap(), "layout");
+        assert_eq!(fs::read_to_string(root.join(".mural/board.json")).unwrap(), "older copy");
+    }
+
 }

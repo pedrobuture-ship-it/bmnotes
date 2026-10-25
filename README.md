@@ -1,10 +1,10 @@
-# b&m notes
+# bmnotes
 
 **A local-first spatial Markdown workspace.**
 
 > Your notes are just files.
 
-Pick a folder of `.md` files and b&m notes spreads them out as cards on an infinite, hand-drawn wall.
+Pick a folder of `.md` files and bmnotes spreads them out as cards on an infinite, hand-drawn wall.
 Everything is plain Markdown on your disk. It works offline, and goes online only when you ask it to:
 sync with GitHub to share a folder, or check for updates.
 
@@ -34,7 +34,7 @@ sync with GitHub to share a folder, or check for updates.
 
 ### Safety
 - **Smart rename**: renaming or moving a note updates `[[links]]` and `[text](note.md)` links in every other note.
-- **Trash**: deleting moves notes to `.mural/trash/`; restore them from the sidebar. Retention is configurable (default 30 days).
+- **Trash**: deleting moves notes to `.bmnotes/trash/`; restore them from the sidebar. Retention is configurable (default 30 days).
 - Local **ZIP backups** (optional daily), a **notes-health** check (broken links, orphans), **password-encrypted notes** (AES-GCM).
 - If one view breaks, it shows the error with *Try again* / *Back to the mural* instead of blanking the window.
 
@@ -51,7 +51,7 @@ sync with GitHub to share a folder, or check for updates.
 
 ## Online only when you want
 
-b&m notes needs no account and no server. With nothing turned on, it makes **no network calls**: no telemetry,
+bmnotes needs no account and no server. With nothing turned on, it makes **no network calls**: no telemetry,
 no analytics, strict CSP, and every library (mermaid, KaTeX, fonts) ships inside the app.
 
 The app goes online only for things you switch on yourself:
@@ -72,7 +72,7 @@ MyVault/
   projects/app.md
   assets/            <- pasted / dropped images, PDFs, audio
   daily/2026-10-13.md
-  .mural/            <- the ONLY app-specific data
+  .bmnotes/            <- the ONLY app-specific data
     board.json       <- Main mural: card positions, sizes, colors, frames, viewport
     boards.json      <- list of extra murals
     boards/<id>.json <- each extra mural
@@ -83,8 +83,8 @@ MyVault/
 ```
 
 - Visual information is **never** written into your Markdown.
-- `.mural/` is created lazily, only when there is something to save.
-- Deleting `.mural/` loses layout only; your notes are untouched.
+- `.bmnotes/` is created lazily, only when there is something to save.
+- Deleting `.bmnotes/` loses layout only; your notes are untouched.
 - If `board.json` is corrupted, the app keeps the broken file as `board.corrupt.json`, restores the newest valid
   backup (or lays the board out again) and never touches a `.md`.
 
@@ -116,21 +116,38 @@ Requirements: `git` installed. Large files (> 10 MB) trigger a warning because t
 
 ## Plugins
 
-A plugin is a `.js` file in `.mural/plugins/` (never synced). It runs in an isolated Web Worker: no network, no DOM, no access to your files except the small `bm` API (`bm.command`, `bm.notes.list/read/write/create`, `bm.toast`, `bm.openNote`, `bm.prompt`). Every file must be approved in **Settings → Plugins** after you read its code, and editing it asks again. A command that runs longer than 10 s is stopped. This is a sandbox, not a hard security boundary: only approve code you trust.
+A plugin is a `.js` file in `.bmnotes/plugins/` (never synced). It runs in an isolated Web Worker: no network, no DOM, no access to your files except the small `bmnotes` API (`bmnotes.command`, `bmnotes.notes.list/read/write/create`, `bmnotes.toast`, `bmnotes.openNote`, `bmnotes.prompt`). Every file must be approved in **Settings → Plugins** after you read its code, and editing it asks again. A command that runs longer than 10 s is stopped. This is a sandbox, not a hard security boundary: only approve code you trust.
 
 ## Releases
 
 Push a tag such as `v0.2.0` and the **Release** workflow (`.github/workflows/release.yml`) builds `.AppImage`, `.deb`, `.rpm`, `.msi`/`.exe` and `.dmg` and attaches them to a draft GitHub release. `CI` runs type-check, lint and all tests on every push. The builds are not code-signed yet, so Windows and macOS ask for confirmation on first launch.
 
+## Upgrading to bmnotes
+
+The app, executable, package, asset protocol (`bmnotes://`) and metadata directory
+(`.bmnotes/`) now use the same name. On opening an existing workspace, bmnotes moves
+its legacy `.mural/` directory to `.bmnotes/`, including settings, boards, backups,
+plugins and trash. It never overwrites an existing `.bmnotes/`; if both directories
+exist, both are preserved and `.bmnotes/` is used. Markdown files are unchanged.
+
+The application identifier is now `app.bmnotes`. Select your notes folder once in
+the renamed desktop app; browser storage belongs to the new application identity.
+An existing GitHub sign-in is moved from the previous configuration directory when
+needed. Previously encrypted notes and the old plugin `bm` API remain supported;
+new notes and plugins use `bmnotes`.
+
+The watcher ignores file reads and its own atomic saves. Markdown conversion and
+graph layout run in background workers; graph rendering is limited to the viewport.
+
 ## Install / run from source
 
 There are no published binaries yet: you build the app yourself (about 3-5 minutes the first time).
 Everything below needs **Node 20+**, **Rust (stable)** and the system WebView libraries for your OS.
-The binary and package are still called `buturenotes` internally.
+The app, binary, package and repository are called `bmnotes`.
 
 ```bash
-git clone https://github.com/pedrobuture-ship-it/buturenotes.git
-cd buturenotes
+git clone https://github.com/pedrobuture-ship-it/bmnotes.git
+cd bmnotes
 npm install
 npm run tauri dev      # run the app
 npm run tauri build    # build installers / binary for your OS
@@ -143,7 +160,7 @@ sudo pacman -S --needed webkit2gtk-4.1 gtk3 librsvg libayatana-appindicator base
 rustup default stable
 ```
 
-Result: `src-tauri/target/release/buturenotes` (run it directly, optionally `buturenotes ~/Notes`), plus
+Result: `src-tauri/target/release/bmnotes` (run it directly, optionally `bmnotes ~/Notes`), plus
 `.deb`, `.rpm` and an AppImage in `src-tauri/target/release/bundle/`. On Arch the plain binary is the most
 reliable option because it uses your system WebKit.
 
@@ -157,7 +174,7 @@ curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh   # then restart 
 ```
 
 Needs Ubuntu 22.04+ / Debian 12+ (WebKitGTK 4.1). Install the generated package with
-`sudo apt install ./src-tauri/target/release/bundle/deb/buturenotes_0.1.0_amd64.deb`.
+`sudo apt install ./src-tauri/target/release/bundle/deb/bmnotes_0.1.0_amd64.deb`.
 
 ### Windows 10/11
 
@@ -167,8 +184,8 @@ Needs Ubuntu 22.04+ / Debian 12+ (WebKitGTK 4.1). Install the generated package 
 3. In PowerShell:
 
 ```powershell
-git clone https://github.com/pedrobuture-ship-it/buturenotes.git
-cd buturenotes
+git clone https://github.com/pedrobuture-ship-it/bmnotes.git
+cd bmnotes
 npm install
 npm run tauri build
 ```
@@ -188,7 +205,7 @@ Requirements: Node 20+, Rust stable (this repo pins it in `mise.toml`).
 ```bash
 npm install
 npm run tauri dev            # run the desktop app with hot reload
-npm run tauri dev -- -- /path/to/folder   # open a folder directly (or: buturenotes /path/to/folder)
+npm run tauri dev -- -- /path/to/folder   # open a folder directly (or: bmnotes /path/to/folder)
 npm run check                # typecheck + lint + frontend tests
 (cd src-tauri && cargo test) # Rust tests (paths, symlinks, atomic writes, trash, backups, sync)
 ```

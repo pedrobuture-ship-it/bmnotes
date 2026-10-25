@@ -13,10 +13,10 @@ Trocar o armazenamento local (pasta de arquivos `.md`) por um backend online (Su
 |---|---|
 | Desktop | Tauri 2 (Rust, ~3k linhas): filesystem, watcher, lixeira, backup ZIP, sync git/GitHub, presença |
 | Frontend | React 19, Zustand, @xyflow/react (mural), CodeMirror 6, unified/remark/rehype, mermaid, KaTeX (~11k linhas de TS) |
-| Dados | Pasta de `.md` + `.mural/*.json` (layout dos murais, settings) + `assets/` (imagens, PDF, áudio) |
+| Dados | Pasta de `.md` + `.bmnotes/*.json` (layout dos murais, settings) + `assets/` (imagens, PDF, áudio) |
 
 **A costura natural é `src/lib/ipc.ts`.** Todo acesso ao backend passa por ele (~50 pontos de chamada em 24 arquivos).
-Fora dele, a única dependência de Tauri está na URL de imagens `mural://localhost/`
+Fora dele, a única dependência de Tauri está na URL de imagens `bmnotes://localhost/`
 (`src/lib/markdown.ts:22`, `src/lib/exportBoard.ts`, `src/lib/exportAction.ts`).
 
 ## Decisão de formato: manter Markdown, mudar o armazenamento
@@ -31,10 +31,10 @@ Fora dele, a única dependência de Tauri está na URL de imagens `mural://local
 |---|---|
 | `.md` em pasta | tabela `notes` (conteúdo em Markdown) |
 | Hierarquia de pastas | tabela `folders` ou coluna `path` |
-| `.mural/board.json`, `boards/*.json` | tabela `boards` (JSONB) |
-| `.mural/settings.json` | tabela `settings` (por usuário/workspace) |
+| `.bmnotes/board.json`, `boards/*.json` | tabela `boards` (JSONB) |
+| `.bmnotes/settings.json` | tabela `settings` (por usuário/workspace) |
 | `assets/` | Supabase Storage + URL assinada |
-| Lixeira em `.mural/trash/` | soft-delete (`deleted_at`) |
+| Lixeira em `.bmnotes/trash/` | soft-delete (`deleted_at`) |
 | Backup ZIP | export (download via `Blob`) |
 | Watcher (`onFsChange`) | Supabase Realtime |
 | Presença ("quem está na nota") | Realtime Presence |

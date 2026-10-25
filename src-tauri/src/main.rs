@@ -7,5 +7,5 @@ fn main() {
         // SAFETY: called at startup before any other thread exists.
         unsafe { std::env::set_var("WEBKIT_DISABLE_DMABUF_RENDERER", "1") };
     }
-    buturenotes_lib::run()
+    bmnotes_lib::run()
 }

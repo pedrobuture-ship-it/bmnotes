@@ -128,7 +128,7 @@ export function SyncPanel() {
       <Row title="Sync automatically" hint="Sends your changes shortly after you stop typing and checks for your friend's changes every minute.">
         <Toggle label="Sync automatically" checked={auto} onChange={(v) => update((s) => ({ ...s, sync: { ...s.sync, auto: v } }))} />
       </Row>
-      <Row title="Show who is here" hint="Tells the people you sync with which note you have open (a tiny branch named bm-presence-you). Others appear in the note's banner.">
+      <Row title="Show who is here" hint="Tells the people you sync with which note you have open (a tiny branch named bmnotes-presence-you). Others appear in the note's banner.">
         <Toggle label="Show who is here" checked={presence} onChange={(v) => update((s) => ({ ...s, sync: { ...s.sync, presence: v } }))} />
       </Row>
       <div style={{ margin: "6px 0 12px" }}>

@@ -94,16 +94,16 @@ fn same_line_conflicts_and_can_be_resolved() {
 fn board_json_merges_per_card_and_ignores_viewport() {
     let w = world();
     let base = r#"{"version":1,"viewport":{"x":0,"y":0,"zoom":1},"cards":{"a.md":{"x":0,"y":0},"b.md":{"x":10,"y":10}},"frames":[],"connections":[],"labels":{}}"#;
-    write(&w.a, ".mural/board.json", base);
+    write(&w.a, ".bmnotes/board.json", base);
     write(&w.a, "a.md", "a\n");
     git(&w.a).link(&w.url).unwrap();
     git(&w.b).link(&w.url).unwrap();
-    write(&w.a, ".mural/board.json", &base.replace(r#""a.md":{"x":0,"y":0}"#, r#""a.md":{"x":99,"y":0}"#).replace(r#""zoom":1"#, r#""zoom":2"#));
-    write(&w.b, ".mural/board.json", &base.replace(r#""b.md":{"x":10,"y":10}"#, r#""b.md":{"x":10,"y":77}"#).replace(r#""zoom":1"#, r#""zoom":3"#));
+    write(&w.a, ".bmnotes/board.json", &base.replace(r#""a.md":{"x":0,"y":0}"#, r#""a.md":{"x":99,"y":0}"#).replace(r#""zoom":1"#, r#""zoom":2"#));
+    write(&w.b, ".bmnotes/board.json", &base.replace(r#""b.md":{"x":10,"y":10}"#, r#""b.md":{"x":10,"y":77}"#).replace(r#""zoom":1"#, r#""zoom":3"#));
     git(&w.a).sync().unwrap();
     let st = git(&w.b).sync().unwrap();
     assert!(st.conflicts.is_empty(), "{:?}", st.conflicts);
-    let merged: serde_json::Value = serde_json::from_str(&read(&w.b, ".mural/board.json")).unwrap();
+    let merged: serde_json::Value = serde_json::from_str(&read(&w.b, ".bmnotes/board.json")).unwrap();
     assert_eq!(merged["cards"]["a.md"]["x"], 99);
     assert_eq!(merged["cards"]["b.md"]["y"], 77);
 }
@@ -112,7 +112,7 @@ fn board_json_merges_per_card_and_ignores_viewport() {
 fn private_files_are_ignored_and_status_reports_link() {
     let w = world();
     write(&w.a, "n.md", "x\n");
-    write(&w.a, ".mural/settings.json", "{}");
+    write(&w.a, ".bmnotes/settings.json", "{}");
     let g = git(&w.a);
     assert!(!g.status().linked);
     let st = g.link(&w.url).unwrap();

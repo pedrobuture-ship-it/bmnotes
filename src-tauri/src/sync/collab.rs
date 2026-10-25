@@ -4,8 +4,8 @@ use super::*;
 use serde::Deserialize;
 use std::time::{SystemTime, UNIX_EPOCH};
 
-const EXCLUDE_BEGIN: &str = "# >>> b&m notes: private (managed, do not edit)";
-const EXCLUDE_END: &str = "# <<< b&m notes: private";
+const EXCLUDE_BEGIN: &str = "# >>> bmnotes: private (managed, do not edit)";
+const EXCLUDE_END: &str = "# <<< bmnotes: private";
 /// Presence older than this is ignored.
 const PRESENCE_TTL_MS: u64 = 3 * 60 * 1000;
 
@@ -69,9 +69,9 @@ impl Git {
         let mut inside = false;
         let mut out = Vec::new();
         for line in text.lines() {
-            if line == EXCLUDE_BEGIN {
+            if line == EXCLUDE_BEGIN || line == "# >>> b&m notes: private (managed, do not edit)" {
                 inside = true;
-            } else if line == EXCLUDE_END {
+            } else if line == EXCLUDE_END || line == "# <<< b&m notes: private" {
                 inside = false;
             } else if inside && !line.trim().is_empty() {
                 out.push(ignore_unescape(line));
@@ -88,9 +88,9 @@ impl Git {
         let mut kept = Vec::new();
         let mut inside = false;
         for line in text.lines() {
-            if line == EXCLUDE_BEGIN {
+            if line == EXCLUDE_BEGIN || line == "# >>> b&m notes: private (managed, do not edit)" {
                 inside = true;
-            } else if line == EXCLUDE_END {
+            } else if line == EXCLUDE_END || line == "# <<< b&m notes: private" {
                 inside = false;
             } else if !inside {
                 kept.push(line.to_string());
@@ -147,25 +147,25 @@ impl Git {
         Ok(self.status())
     }
 
-    /// Publishes "`login` is on `note`" as a one-commit branch `bm-presence-<login>` (force-pushed, never touching main).
+    /// Publishes "`login` is on `note`" as a one-commit branch `bmnotes-presence-<login>` (force-pushed, never touching main).
     pub fn presence_publish(&self, login: &str, note: Option<&str>) -> Res<()> {
         let login = safe_login(login).ok_or("Invalid user name")?;
         let json = serde_json::to_string(&Presence { login: login.to_string(), note: note.map(String::from), at: now_ms() }).map_err(|e| e.to_string())?;
         let blob = self.run_in(&["hash-object", "-w", "--stdin"], json.as_bytes())?;
         let tree = self.run_in(&["mktree"], format!("100644 blob {}\tpresence.json\n", blob.trim()).as_bytes())?;
         let commit = self.run(&["commit-tree", tree.trim(), "-m", "presence"])?;
-        let spec = format!("{}:refs/heads/bm-presence-{login}", commit.trim());
+        let spec = format!("{}:refs/heads/bmnotes-presence-{login}", commit.trim());
         self.run(&["push", "-q", "--force", "origin", &spec])?;
         Ok(())
     }
 
     /// Other people seen in the last few minutes.
     pub fn presence_list(&self, me: &str) -> Res<Vec<Presence>> {
-        self.run(&["fetch", "-q", "origin", "+refs/heads/bm-presence-*:refs/remotes/origin/bm-presence-*"])?;
+        self.run(&["fetch", "-q", "origin", "+refs/heads/bmnotes-presence-*:refs/remotes/origin/bmnotes-presence-*"])?;
         let cutoff = now_ms().saturating_sub(PRESENCE_TTL_MS);
         let mut out = Vec::new();
         for r in self.lines(&["for-each-ref", "--format=%(refname)", "refs/remotes/origin/"]) {
-            if !r.starts_with("refs/remotes/origin/bm-presence-") {
+            if !r.starts_with("refs/remotes/origin/bmnotes-presence-") {
                 continue;
             }
             let Ok(text) = self.run(&["show", &format!("{r}:presence.json")]) else { continue };

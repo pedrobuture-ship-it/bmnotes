@@ -80,7 +80,7 @@ export function getCommands(): Command[] {
     { id: "trash", label: "Open trash", run: () => ui().setDialog("trash") },
     { id: "settings", label: "Settings", hint: "Ctrl ,", run: () => ui().setDialog("settings") },
     { id: "shortcuts", label: "Keyboard shortcuts", hint: "Ctrl /", run: () => ui().setDialog("shortcuts") },
-    { id: "about", label: "About b&m notes", run: () => ui().setDialog("about") },
+    { id: "about", label: "About bmnotes", run: () => ui().setDialog("about") },
     { id: "close-ws", label: "Close workspace", run: () => void useWorkspace.getState().closeWorkspace() },
   ];
 }

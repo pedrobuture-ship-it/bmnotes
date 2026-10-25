@@ -83,9 +83,20 @@ export function NotePane({ path }: { path: string }) {
     if (!pending || noteContent === undefined) return;
     const h = extractHeadings(noteContent).find((x) => x.slug === pending);
     if (h) setJump({ line: h.line, nonce: Date.now() });
-    requestAnimationFrame(() => previewRef.current?.querySelector(`[data-heading="${CSS.escape(pending)}"]`)?.scrollIntoView({ block: "start" }));
-    useUi.getState().setPendingHeading(null);
-  }, [pending, noteContent]);
+    const root = previewRef.current;
+    if (!root) { useUi.getState().setPendingHeading(null); return; }
+    // Preview HTML arrives asynchronously from its worker.
+    const scroll = () => {
+      if (root.querySelector('[aria-busy="true"]')) return;
+      const target = root.querySelector(`[data-heading="${CSS.escape(pending)}"]`);
+      target?.scrollIntoView({ block: "start" });
+      useUi.getState().setPendingHeading(null);
+    };
+    const observer = new MutationObserver(scroll);
+    observer.observe(root, { childList: true, subtree: true, attributes: true, attributeFilter: ["aria-busy"] });
+    const frame = requestAnimationFrame(scroll);
+    return () => { observer.disconnect(); cancelAnimationFrame(frame); };
+  }, [pending, noteContent, mode]);
 
   const props = useMemo(() => (noteContent ? Object.entries(splitFrontmatter(noteContent).data).filter(([, v]) => (Array.isArray(v) ? v.length : v !== "")) : []), [noteContent]);
 

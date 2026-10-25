@@ -44,8 +44,7 @@ export function buildIndex(notes: Map<string, string> | Iterable<[string, string
   return linkIndex(parsed);
 }
 
-export function linkIndex(parsed: Map<string, Omit<NoteMeta, "links">>): NoteIndex {
-  const resolver = createResolver([...parsed.keys()]);
+export function linkIndex(parsed: Map<string, Omit<NoteMeta, "links">>, resolver = createResolver([...parsed.keys()])): NoteIndex {
   const meta = new Map<string, NoteMeta>();
   const backlinks = new Map<string, string[]>();
   const tags = new Map<string, string[]>();
@@ -80,5 +79,6 @@ export function updateIndex(prev: NoteIndex, changes: { path: string; content: s
     if (c.content === null) parsed.delete(c.path);
     else parsed.set(c.path, parseNote(c.path, c.content));
   }
-  return linkIndex(parsed);
+  const samePaths = parsed.size === prev.meta.size && [...parsed.keys()].every((path) => prev.meta.has(path));
+  return linkIndex(parsed, samePaths ? prev.resolver : undefined);
 }

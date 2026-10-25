@@ -19,7 +19,7 @@ import { protectCurrency } from "./mathGuard";
 import { DATE_TOKEN, isRealDate } from "./dates";
 
 const isWindows = typeof navigator !== "undefined" && /Windows/i.test(navigator.userAgent);
-const ASSET_BASE = isWindows ? "http://mural.localhost/" : "mural://localhost/";
+const ASSET_BASE = isWindows ? "http://bmnotes.localhost/" : "bmnotes://localhost/";
 
 export function assetUrl(relPath: string): string {
   return ASSET_BASE + relPath.split("/").map(encodeURIComponent).join("/");

@@ -47,7 +47,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           tagName: ${{ github.ref_name }}
-          releaseName: "b&m notes ${{ github.ref_name }}"
+          releaseName: "bmnotes ${{ github.ref_name }}"
           releaseBody: "Installers for Linux (.AppImage, .deb, .rpm), Windows (.msi, .exe) and macOS (.dmg). These builds are not code-signed yet, so your system may ask you to confirm the first launch."
           releaseDraft: true
           prerelease: false

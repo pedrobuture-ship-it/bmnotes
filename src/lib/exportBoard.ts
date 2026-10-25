@@ -27,9 +27,9 @@ const FRAME_COLOR: Record<string, string> = { paper: "#8a7d6a", yellow: "#b99a2f
 
 export const esc = (s: string): string => s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c] ?? c);
 
-/** Replaces `mural://` image URLs (which only work inside the app) using `resolve`; unknown ones are dropped. */
+/** Replaces `bmnotes://` image URLs (which only work inside the app) using `resolve`; unknown ones are dropped. */
 export function inlineAssets(html: string, resolve: (relPath: string) => string | null): string {
-  return html.replace(/src="(?:mural:\/\/localhost|http:\/\/mural\.localhost)\/([^"]*)"/g, (_, enc: string) => {
+  return html.replace(/src="(?:bmnotes:\/\/localhost|http:\/\/bmnotes\.localhost)\/([^"]*)"/g, (_, enc: string) => {
     let rel = enc;
     try {
       rel = enc.split("/").map(decodeURIComponent).join("/");
@@ -126,6 +126,6 @@ export function buildBoardHtml(input: ExportInput): string {
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <meta http-equiv="Content-Security-Policy" content="${csp}"><title>${esc(input.title)}</title><style>${CSS(theme === "dark")}</style></head>
 <body><div id="vp"><div id="world" data-w="${W}" data-h="${H}" style="width:${W}px;height:${H}px">${frames}<svg width="${W}" height="${H}">${svg}</svg>${cardHtml}</div></div>
-<div class="hint">Scroll to zoom · drag to move · made with b&amp;m notes</div><script>${SCRIPT}</script></body></html>
+<div class="hint">Scroll to zoom · drag to move · made with bmnotes</div><script>${SCRIPT}</script></body></html>
 `;
 }

@@ -14,7 +14,7 @@ export function Onboarding() {
     <main className="onboarding">
       <div className="onboarding-card paper-card">
         <div className="flex justify-center mb-2"><LogoMark width={64} height={64} /></div>
-        <h1>b&amp;m <b>notes</b></h1>
+        <h1>bm<b>notes</b></h1>
         <p className="tagline">{tr("Your notes are just files.")}</p>
         <p style={{ margin: "0 auto 22px", maxWidth: 440, fontFamily: "var(--font-body)", color: "#4a3f2d" }}>
           {tr("Pick a folder of Markdown files and spread them out on an infinite hand-drawn wall. No account, no cloud, no lock-in.")}

@@ -29,7 +29,7 @@ fn serve_asset(app: &tauri::AppHandle, uri: &str, range: Option<&str>) -> Respon
     let fail = |code: StatusCode| Response::builder().status(code).body(Vec::new()).unwrap();
     let state = app.state::<AppState>();
     let Ok(root) = state.root() else { return fail(StatusCode::NOT_FOUND) };
-    // mural://localhost/<percent-encoded relative path>
+    // bmnotes://localhost/<percent-encoded relative path>
     let path_part = uri.split_once("://").map(|(_, r)| r).unwrap_or(uri);
     let path_part = path_part.split_once('/').map(|(_, p)| p).unwrap_or("");
     let path_part = path_part.split(['?', '#']).next().unwrap_or("");
@@ -86,7 +86,7 @@ pub fn run() {
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_opener::init())
         .manage(AppState::default())
-        .register_uri_scheme_protocol("mural", |ctx, request| {
+        .register_uri_scheme_protocol("bmnotes", |ctx, request| {
             serve_asset(ctx.app_handle(), &request.uri().to_string(), request.headers().get("range").and_then(|v| v.to_str().ok()))
         })
         .invoke_handler(tauri::generate_handler![
@@ -137,7 +137,7 @@ pub fn run() {
             sync::github_create_repo,
         ])
         .run(tauri::generate_context!())
-        .expect("error while running buturenotes");
+        .expect("error while running bmnotes");
 }
 
 #[cfg(test)]

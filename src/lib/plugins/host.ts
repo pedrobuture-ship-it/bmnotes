@@ -1,6 +1,6 @@
 /**
- * Plugins are small JavaScript files from `.mural/plugins/`. They run in a Web Worker with no network, no DOM and no
- * access to the app: the only way out is the `bm` API below, which this host serves over `postMessage`.
+ * Plugins are small JavaScript files from `.bmnotes/plugins/`. They run in a Web Worker with no network, no DOM and no
+ * access to the app: the only way out is the `bmnotes` API below, which this host serves over `postMessage`.
  */
 
 /** Source run inside the worker before the plugin's own code. */
@@ -13,9 +13,9 @@ const __call = (op, args) => new Promise((resolve, reject) => { const id = ++__r
 for (const k of ["fetch", "XMLHttpRequest", "WebSocket", "EventSource", "importScripts", "indexedDB", "caches", "Worker", "SharedWorker", "BroadcastChannel"]) {
   try { Object.defineProperty(self, k, { value: undefined, configurable: false }); } catch (_) {}
 }
-self.bm = Object.freeze({
+self.bmnotes = Object.freeze({
   command(id, label, fn) {
-    if (typeof id !== "string" || typeof label !== "string" || typeof fn !== "function") throw new Error("bm.command(id, label, fn)");
+    if (typeof id !== "string" || typeof label !== "string" || typeof fn !== "function") throw new Error("bmnotes.command(id, label, fn)");
     __cmds.set(id, fn);
     __post({ t: "command", id, label });
   },
@@ -29,6 +29,7 @@ self.bm = Object.freeze({
     create: (name, content) => __call("create", { name: String(name), content: String(content == null ? "" : content) }),
   }),
 });
+self.bm = self.bmnotes; // Compatibility for previously approved plugins.
 onmessage = async (e) => {
   const m = e.data;
   if (m.t === "run") {

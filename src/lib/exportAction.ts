@@ -15,7 +15,7 @@ export async function exportBoardAsHtml(): Promise<void> {
   const ws = useWorkspace.getState();
   const { board, boards, activeId } = useBoard.getState();
   const name = boards.find((b) => b.id === activeId)?.name ?? "Mural";
-  const dest = await ipc.pickSavePath(`${ws.info?.name ?? "mural"}-${name}.html`.replace(/[\\/:*?"<>|]/g, "-"), "html");
+  const dest = await ipc.pickSavePath(`${ws.info?.name ?? "bmnotes"}-${name}.html`.replace(/[\\/:*?"<>|]/g, "-"), "html");
   if (!dest) return;
   try {
     await ws.flushAll();
@@ -29,7 +29,7 @@ export async function exportBoardAsHtml(): Promise<void> {
       });
     // Embed the images the cards use.
     const wanted = new Set<string>();
-    for (const c of cards) for (const m of c.html.matchAll(/src="(?:mural:\/\/localhost|http:\/\/mural\.localhost)\/([^"]*)"/g)) wanted.add(decodeURIComponent(m[1] ?? ""));
+    for (const c of cards) for (const m of c.html.matchAll(/src="(?:bmnotes:\/\/localhost|http:\/\/bmnotes\.localhost)\/([^"]*)"/g)) wanted.add(decodeURIComponent(m[1] ?? ""));
     const data = new Map<string, string>();
     await Promise.all([...wanted].map(async (rel) => { data.set(rel, await ipc.readAssetDataUri(rel).catch(() => "")); }));
     const resolve = (rel: string) => data.get(rel) || null;

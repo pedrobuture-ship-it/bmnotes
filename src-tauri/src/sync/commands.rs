@@ -158,7 +158,7 @@ pub async fn github_create_repo(app: AppHandle, name: String, private: bool) -> 
         .post("https://api.github.com/user/repos")
         .bearer_auth(tk)
         .header("Accept", "application/vnd.github+json")
-        .json(&serde_json::json!({ "name": name, "private": private, "description": "Notes synced with b&m notes" }))
+        .json(&serde_json::json!({ "name": name, "private": private, "description": "Notes synced with bmnotes" }))
         .send()
         .await
         .map_err(github::net)?;

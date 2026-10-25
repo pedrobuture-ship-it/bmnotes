@@ -1,16 +1,16 @@
-# buturenotes — final audit (v0.1.0)
+# bmnotes — final audit (v0.1.0)
 
 ## 1. Final architecture
 
 - **Rust / Tauri 2** (`src-tauri/src`)
   - `filesystem/paths.rs`: the only place paths are validated (`safe_join`: no absolute paths, no `..`, no NUL,
     nearest existing ancestor must canonicalize *inside* the workspace, so symlink escapes are rejected).
-  - `filesystem/ops.rs`: scan (never follows symlinks, skips `.git`, `node_modules`, `.mural`, hidden folders),
-    read, atomic write (temp + fsync + rename), create/rename/move/delete, asset import, `.mural` metadata with
+  - `filesystem/ops.rs`: scan (never follows symlinks, skips `.git`, `node_modules`, `.bmnotes`, hidden folders),
+    read, atomic write (temp + fsync + rename), create/rename/move/delete, asset import, `.bmnotes` metadata with
     whitelisted file names and rotating `board.json` backups.
   - `commands/`: the IPC surface (15 commands + `launch_path`). `watcher/`: debounced `notify` watcher that
     drops events caused by our own saves (content hash).
-  - A read-only `mural://` URI scheme serves **images only**, from inside the open workspace.
+  - A read-only `bmnotes://` URI scheme serves **images only**, from inside the open workspace.
 - **React 19 / TypeScript strict** (`src`)
   - `lib/`: pure, tested logic (wiki links, tags, titles, checkbox toggling, note index + backlinks, search,
     Markdown pipeline, board schema/normalisation, paths).
@@ -18,7 +18,7 @@
   - `features/`: board (canvas), editor, sidebar, graph, search/palette, settings, onboarding, shell.
   - `styles/`: design system (tokens, `paper-card`, `sketch-border`, `handwritten-label`, `doodle-line`,
     `board-frame`, `sticky-note`…), CSS/SVG only, bundled offline fonts.
-- Source of truth = the `.md` files. Visual data lives only in `.mural/`.
+- Source of truth = the `.md` files. Visual data lives only in `.bmnotes/`.
 
 ## 2. Features implemented (all 42 prompts)
 
@@ -30,7 +30,7 @@ cursor with inline title → safe slug rename · in-card editing · frames (card
 colours and context menu · wiki links, hand-drawn connections with preset/custom labels, manual links ·
 backlinks · global search (Ctrl+P) · command palette (Ctrl+K, fuzzy) · tags · daily notes · interactive
 checkboxes · image drop/paste into `assets/` · live filesystem watcher with conflict banner · graph explorer ·
-shortcuts + shortcuts screen · settings (`.mural/settings.json`) · animations (reduced-motion aware) ·
+shortcuts + shortcuts screen · settings (`.bmnotes/settings.json`) · animations (reduced-motion aware) ·
 performance work · error recovery · board backups · onboarding + demo workspace · empty states with SVG
 illustrations · opening existing Obsidian-style vaults · reveal workspace + About · tests · security review ·
 README · release build.
@@ -39,8 +39,8 @@ README · release build.
 
 | # | Problem | Severity |
 |---|---|---|
-| 1 | `read_meta` joined a frontend-supplied file name onto `.mural/` without validation (path traversal read). Found in the security pass. | High |
-| 2 | `percent_decode` for `mural://` URLs could panic on multi-byte input (string slicing on a non-char boundary). | Medium |
+| 1 | `read_meta` joined a frontend-supplied file name onto `.bmnotes/` without validation (path traversal read). Found in the security pass. | High |
+| 2 | `percent_decode` for `bmnotes://` URLs could panic on multi-byte input (string slicing on a non-char boundary). | Medium |
 | 3 | Wiki-link resolver was rebuilt (sorting every path) for every link of every rendered card: 3,000 notes took ~23 s to open. | High (perf) |
 | 4 | Context-menu helper returned unstable callbacks → effect loop → "Maximum update depth exceeded" on the board. | High |
 | 5 | Rendering every card at fit-zoom (3,000 full Markdown cards), minimap calling `getComputedStyle` per node, every edit rebuilding all node objects. | High (perf) |
@@ -52,7 +52,7 @@ README · release build.
 ## 4. Fixes made
 
 1. `read_meta`/`write_meta` share one whitelist (`board.json`, `settings.json`, `board.corrupt.json`) and resolve
-   through `safe_join` (also stops a symlinked `.mural`). Test added.
+   through `safe_join` (also stops a symlinked `.bmnotes`). Test added.
 2. Byte-wise percent decoding with a unit test (incl. UTF-8).
 3. Resolver built once per index and reused. 3,000 notes: index 38 ms, search 14 ms.
 4. `useContextMenu` returns memoised callbacks.
@@ -65,14 +65,14 @@ README · release build.
 9. Removed the inline callback.
 
 Verification: `tsc`, `eslint` (no `any`), 24 Vitest tests, 12 Rust tests, plus end-to-end runs of the real UI
-(headless Chromium with a stand-in for the IPC layer) and of the real Tauri binary (folder argument, `mural://`
+(headless Chromium with a stand-in for the IPC layer) and of the real Tauri binary (folder argument, `bmnotes://`
 images, live watcher updates verified by editing files from outside). Release bundles built locally: `.deb`,
 `.rpm`, AppImage.
 
 ## 5. Known gaps / future improvements
 
 - Renaming/moving a note offers to rewrite `[[links]]` and relative `[text](note.md)` links (**done**).
-- Delete now moves to `.mural/trash/` with restore and configurable retention (**done**).
+- Delete now moves to `.bmnotes/trash/` with restore and configurable retention (**done**).
 - Light theme (**done**).
 - Only the Linux bundle was built and run here; Windows/macOS configs are standard Tauri but untested.
 - Embeds (`![[note]]`) and `[[note#heading]]` links are supported in the preview; aliases and headings are not drawn in the graph.
@@ -96,11 +96,11 @@ Verified by automated tests: alignment/snap maths, timeline grouping, mind-map l
 translation placeholders, keyboard-navigation geometry.
 
 **Not exercised in a real window** (written carefully, but please try them): microphone recording (WebKitGTK may ask for or refuse microphone access),
-mermaid diagrams in the preview, the HTML export file dialog, PDF "open with the system app", audio seeking through the `mural://` range responses,
+mermaid diagrams in the preview, the HTML export file dialog, PDF "open with the system app", audio seeking through the `bmnotes://` range responses,
 the release workflow (needs a pushed tag), and the real-time behaviour of presence between two machines.
 
 Known limits: the plugin sandbox relies on a Web Worker plus the app's CSP (no network); it is not a security boundary against a determined attacker,
 which is why every plugin needs explicit approval of its exact code. Translations cover the main interface (menus, dialogs, settings, toasts) in
 English and Portuguese (Brasil); text built with variable names inside sentences may still appear in English. Presence publishes one force-pushed
-branch `bm-presence-<login>` per person. Making an already-shared file private removes it from the repository, so the other person's copy is deleted
+branch `bmnotes-presence-<login>` per person. Making an already-shared file private removes it from the repository, so the other person's copy is deleted
 on their next sync. Large folders still load every note into memory; an on-disk index was not needed for the measured sizes.

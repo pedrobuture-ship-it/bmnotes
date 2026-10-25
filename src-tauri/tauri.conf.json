@@ -1,8 +1,8 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "buturenotes",
+  "productName": "bmnotes",
   "version": "0.1.0",
-  "identifier": "app.buturenotes",
+  "identifier": "app.bmnotes",
   "build": {
     "beforeDevCommand": "npm run dev",
     "devUrl": "http://localhost:1420",
@@ -12,7 +12,7 @@
   "app": {
     "windows": [
       {
-        "title": "b&m notes",
+        "title": "bmnotes",
         "width": 1360,
         "height": 860,
         "minWidth": 900,
@@ -22,7 +22,7 @@
       }
     ],
     "security": {
-      "csp": "default-src 'self'; img-src 'self' data: blob: mural: http://mural.localhost; media-src 'self' blob: mural: http://mural.localhost; worker-src 'self' blob:; style-src 'self' 'unsafe-inline'; font-src 'self' data:; connect-src 'self' ipc: http://ipc.localhost"
+      "csp": "default-src 'self'; img-src 'self' data: blob: bmnotes: http://bmnotes.localhost; media-src 'self' blob: bmnotes: http://bmnotes.localhost; worker-src 'self' blob:; style-src 'self' 'unsafe-inline'; font-src 'self' data:; connect-src 'self' ipc: http://ipc.localhost"
     }
   },
   "bundle": {
@@ -30,7 +30,7 @@
     "targets": "all",
     "category": "Productivity",
     "shortDescription": "A local-first spatial Markdown workspace.",
-    "longDescription": "buturenotes turns a folder of Markdown files into an infinite hand-drawn mural. Your notes are just files.",
+    "longDescription": "bmnotes turns a folder of Markdown files into an infinite hand-drawn mural. Your notes are just files.",
     "icon": ["icons/32x32.png", "icons/128x128.png", "icons/128x128@2x.png", "icons/icon.icns", "icons/icon.ico"]
   }
 }

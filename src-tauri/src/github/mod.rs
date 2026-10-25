@@ -5,10 +5,10 @@ use tauri::{AppHandle, Manager};
 
 type Res<T> = Result<T, String>;
 
-/// Public identifier of the "b&m notes" OAuth App. Device flow needs no client secret.
+/// Public identifier of the "bmnotes" OAuth App. Device flow needs no client secret.
 const CLIENT_ID: &str = "Ov23li8KuIIKb5wDdfrb";
 const SCOPE: &str = "repo";
-const UA: &str = "bm-notes";
+const UA: &str = "bmnotes";
 
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -72,7 +72,17 @@ pub(crate) fn net(e: reqwest::Error) -> String {
 fn token_path(app: &AppHandle) -> Res<PathBuf> {
     let dir = app.path().app_config_dir().map_err(|e| e.to_string())?;
     std::fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
-    Ok(dir.join("github-token"))
+    let path = dir.join("github-token");
+    if !path.exists() {
+        // Move, rather than copy: logging out must not resurrect an old credential.
+        if let Some(parent) = dir.parent() {
+            let legacy = parent.join("app.buturenotes").join("github-token");
+            if legacy.is_file() {
+                std::fs::rename(legacy, &path).map_err(|e| format!("Cannot migrate GitHub sign-in: {e}"))?;
+            }
+        }
+    }
+    Ok(path)
 }
 
 fn save_token(app: &AppHandle, token: &str) -> Res<()> {

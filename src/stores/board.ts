@@ -11,11 +11,11 @@ export interface BoardMeta {
 
 export const MAIN_BOARD = "main";
 const fileOf = (id: string) => (id === MAIN_BOARD ? "board.json" : `boards/${id}.json`);
-const activeKey = (root: string) => `bm.board:${root}`;
+const activeKey = (root: string) => `bmnotes.board:${root}`;
 
 function readActive(root: string): string | null {
   try {
-    return localStorage.getItem(activeKey(root));
+    return localStorage.getItem(activeKey(root)) ?? localStorage.getItem(`bm.board:${root}`);
   } catch {
     return null;
   }
@@ -36,7 +36,7 @@ interface BoardState {
   rootKey: string;
   board: BoardData;
   ready: boolean;
-  /** True when .mural/board.json exists (or has been written) for this workspace. */
+  /** True when .bmnotes/board.json exists (or has been written) for this workspace. */
   hasFile: boolean;
   recovered: "none" | "backup" | "fresh";
   load: (notePaths: string[], rootKey?: string, wantId?: string) => Promise<void>;

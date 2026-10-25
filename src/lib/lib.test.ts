@@ -518,7 +518,7 @@ describe("mural export", () => {
     expect(html).toContain("Content-Security-Policy");
   });
   it("inlines assets and drops the ones it cannot read", () => {
-    const out = inlineAssets('<img src="mural://localhost/assets/a%20b.png"><img src="mural://localhost/x.png">', (p) => (p === "assets/a b.png" ? "data:image/png;base64,AAA" : null));
+    const out = inlineAssets('<img src="bmnotes://localhost/assets/a%20b.png"><img src="bmnotes://localhost/x.png">', (p) => (p === "assets/a b.png" ? "data:image/png;base64,AAA" : null));
     expect(out).toContain('src="data:image/png;base64,AAA"');
     expect(out).toContain('alt="image not included"');
   });
@@ -638,16 +638,16 @@ describe("plugin host", () => {
     };
     const w = new FakeWorker();
     const cmds: string[] = [];
-    const host = new PluginHost("demo", "bm.toast('hi')", api, (src) => { w.source = src; return w; }, (c) => cmds.push(c.id), (m) => fails.push(m));
+    const host = new PluginHost("demo", "bmnotes.toast('hi')", api, (src) => { w.source = src; return w; }, (c) => cmds.push(c.id), (m) => fails.push(m));
     host.start();
     return { w, host, writes, toasts, fails, cmds };
   };
 
   it("loads the plugin after the bootstrap with no network and the bm api", () => {
     const { w } = setup();
-    expect(w.source).toContain("self.bm = Object.freeze");
+    expect(w.source).toContain("self.bmnotes = Object.freeze");
     expect(w.source).toContain('"fetch"');
-    expect(w.source.indexOf("bm.toast('hi')")).toBeGreaterThan(w.source.indexOf("self.bm"));
+    expect(w.source.indexOf("bmnotes.toast('hi')")).toBeGreaterThan(w.source.indexOf("self.bm"));
   });
 
   it("registers commands, serves note calls and forwards toasts", async () => {

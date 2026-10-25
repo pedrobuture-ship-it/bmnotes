@@ -3,8 +3,8 @@
 
 use std::path::{Component, Path, PathBuf};
 
-pub const MURAL_DIR: &str = ".mural";
-pub const DEFAULT_IGNORED: [&str; 3] = ["node_modules", ".git", ".mural"];
+pub const METADATA_DIR: &str = ".bmnotes";
+pub const DEFAULT_IGNORED: [&str; 3] = ["node_modules", ".git", ".bmnotes"];
 
 /// Validates a relative path ("a/b/c.md") and joins it onto `root`.
 /// Rejects absolute paths, `..`, NUL bytes and anything that resolves (through

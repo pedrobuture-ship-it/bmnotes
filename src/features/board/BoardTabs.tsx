@@ -44,7 +44,7 @@ export function BoardTabs() {
             {b.name}
           </button>
           {b.id !== MAIN_BOARD && linked && (
-            <button className="board-tab-x" onClick={() => void togglePrivate(`.mural/boards/${b.id}.json`)} aria-label={`${isPrivate(`.mural/boards/${b.id}.json`) ? "Share" : "Keep private"} mural ${b.name}`} data-tip={isPrivate(`.mural/boards/${b.id}.json`) ? "Private (click to share)" : "Keep private"} style={isPrivate(`.mural/boards/${b.id}.json`) ? { opacity: 1, color: "var(--amber)" } : undefined}><Lock size={11} /></button>
+            <button className="board-tab-x" onClick={() => void togglePrivate(`.bmnotes/boards/${b.id}.json`)} aria-label={`${isPrivate(`.bmnotes/boards/${b.id}.json`) ? "Share" : "Keep private"} mural ${b.name}`} data-tip={isPrivate(`.bmnotes/boards/${b.id}.json`) ? "Private (click to share)" : "Keep private"} style={isPrivate(`.bmnotes/boards/${b.id}.json`) ? { opacity: 1, color: "var(--amber)" } : undefined}><Lock size={11} /></button>
           )}
           {b.id !== MAIN_BOARD && (
             <button className="board-tab-x" onClick={() => void remove(b.id, b.name)} aria-label={`Delete mural ${b.name}`}><X size={12} /></button>

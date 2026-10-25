@@ -181,7 +181,7 @@ export function SettingsDialog() {
               <Row title="Trash retention" hint="Days before deleted notes are removed for good. 0 keeps them until you empty the trash.">
                 <NumberField label="Trash retention days" value={settings.files.trashRetentionDays} min={0} max={3650} onChange={(n) => update((s) => ({ ...s, files: { ...s.files, trashRetentionDays: n } }))} />
               </Row>
-              <Row title="Ignored folders" hint="Comma separated. node_modules, .git and .mural are always ignored.">
+              <Row title="Ignored folders" hint="Comma separated. node_modules, .git and .bmnotes are always ignored.">
                 <input
                   className="field"
                   style={{ width: 220 }}
@@ -216,7 +216,7 @@ export function SettingsDialog() {
         </div>
       </div>
       <div className="px-5 py-3" style={{ borderTop: "2px dashed var(--line-soft)", color: "var(--ink-faint)" }}>
-        {tr("Saved to")} <span className="kbd">.mural/settings.json</span> {tr("inside your workspace.")}
+        {tr("Saved to")} <span className="kbd">.bmnotes/settings.json</span> {tr("inside your workspace.")}
       </div>
     </Dialog>
   );
@@ -227,12 +227,12 @@ export function AboutDialog() {
   const setDialog = useUi((s) => s.setDialog);
   const root = useWorkspace((s) => s.info?.root);
   return (
-    <Dialog title="About b&m notes" onClose={() => setDialog(null)} width={500}>
+    <Dialog title="About bmnotes" onClose={() => setDialog(null)} width={500}>
       <div className="px-5 pb-5 flex flex-col gap-3 selectable">
-        <div className="flex items-center gap-3"><LogoMark width={46} height={46} /><div><div className="handwritten-label" style={{ fontSize: "1.9rem" }}>b&amp;m notes</div><div style={{ color: "var(--ink-dim)" }}>{tr("Version 0.1.0 — a local-first spatial Markdown workspace.")}</div></div></div>
+        <div className="flex items-center gap-3"><LogoMark width={46} height={46} /><div><div className="handwritten-label" style={{ fontSize: "1.9rem" }}>bmnotes</div><div style={{ color: "var(--ink-dim)" }}>{tr("Version 0.1.0 — a local-first spatial Markdown workspace.")}</div></div></div>
         <p className="m-0 handwritten-label" style={{ fontSize: "1.5rem", color: "var(--ink)" }}>{tr("Your notes are just files.")}</p>
         <div className="shortcut-row"><span>{tr("Data model")}</span><span>{tr("Plain Markdown + local assets.")}</span></div>
-        <div className="shortcut-row"><span>{tr("Mural metadata")}</span><span className="kbd">.mural/</span></div>
+        <div className="shortcut-row"><span>{tr("Mural metadata")}</span><span className="kbd">.bmnotes/</span></div>
         <div className="shortcut-row"><span>{tr("Network")}</span><span>{tr("Off by default. Only the optional GitHub sync and update check use it.")}</span></div>
         {root && <div className="shortcut-row"><span>{tr("Workspace")}</span><span className="truncate" style={{ maxWidth: 300 }} title={root}>{root}</span></div>}
         <div className="flex justify-end">

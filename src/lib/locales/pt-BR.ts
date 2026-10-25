@@ -1,7 +1,8 @@
 /** Português (Brasil). A chave é o texto em inglês; textos ausentes aparecem em inglês. */
 export const PT_BR: Record<string, string> = {
+  "Laying out the graph…": "Organizando o grafo…",
   // Geral
-  "About b&m notes": "Sobre o b&m notes",
+  "About bmnotes": "Sobre o bmnotes",
   Apply: "Aplicar",
   Back: "Voltar",
   Cancel: "Cancelar",
@@ -322,7 +323,7 @@ export const PT_BR: Record<string, string> = {
   "Trash retention": "Retenção da lixeira",
   "Days before deleted notes are removed for good. 0 keeps them until you empty the trash.": "Dias até as notas apagadas serem removidas de vez. 0 mantém até você esvaziar a lixeira.",
   "Ignored folders": "Pastas ignoradas",
-  "Comma separated. node_modules, .git and .mural are always ignored.": "Separadas por vírgula. node_modules, .git e .mural são sempre ignoradas.",
+  "Comma separated. node_modules, .git and .bmnotes are always ignored.": "Separadas por vírgula. node_modules, .git e .bmnotes são sempre ignoradas.",
   "Daily notes folder": "Pasta das notas diárias",
   "New daily notes are created as YYYY-MM-DD.md here.": "As novas notas diárias são criadas aqui como AAAA-MM-DD.md.",
   "Dotted grid": "Grade pontilhada",
@@ -358,7 +359,7 @@ export const PT_BR: Record<string, string> = {
   "Sync automatically": "Sincronizar automaticamente",
   "Sends your changes shortly after you stop typing and checks for your friend's changes every minute.": "Envia suas mudanças logo depois que você para de digitar e busca as do seu amigo a cada minuto.",
   "Show who is here": "Mostrar quem está aqui",
-  "Tells the people you sync with which note you have open (a tiny branch named bm-presence-you). Others appear in the note's banner.": "Avisa as pessoas com quem você sincroniza qual nota você abriu (uma branch minúscula chamada bm-presence-você). Os outros aparecem no aviso da nota.",
+  "Tells the people you sync with which note you have open (a tiny branch named bmnotes-presence-you). Others appear in the note's banner.": "Avisa as pessoas com quem você sincroniza qual nota você abriu (uma branch minúscula chamada bmnotes-presence-você). Os outros aparecem no aviso da nota.",
   "Private on this computer": "Privado neste computador",
   "These are never uploaded. Right-click a note in the sidebar → “Keep private”, or the lock on a mural tab.": "Estes nunca são enviados. Clique com o botão direito numa nota na barra lateral → “Manter privada”, ou use o cadeado na aba do mural.",
   "Nothing is private.": "Nada é privado.",
@@ -397,7 +398,7 @@ export const PT_BR: Record<string, string> = {
   "Version {v} is available. See Settings → Updates.": "A versão {v} está disponível. Veja Configurações → Atualizações.",
 
   // Plugins
-  "Plugins add commands to the palette (Ctrl+K). They are plain .js files in .mural/plugins/ that run in an isolated worker with no network and no access to your computer: only the notes API below. They are never synced. Each file needs your approval, and changing it asks again.": "Plugins adicionam comandos à paleta (Ctrl+K). São arquivos .js simples em .mural/plugins/ que rodam num worker isolado, sem rede e sem acesso ao seu computador: só a API de notas abaixo. Nunca são sincronizados. Cada arquivo precisa da sua aprovação, e mudá-lo pede de novo.",
+  "Plugins add commands to the palette (Ctrl+K). They are plain .js files in .bmnotes/plugins/ that run in an isolated worker with no network and no access to your computer: only the notes API below. They are never synced. Each file needs your approval, and changing it asks again.": "Plugins adicionam comandos à paleta (Ctrl+K). São arquivos .js simples em .bmnotes/plugins/ que rodam num worker isolado, sem rede e sem acesso ao seu computador: só a API de notas abaixo. Nunca são sincronizados. Cada arquivo precisa da sua aprovação, e mudá-lo pede de novo.",
   "Open plugins folder": "Abrir a pasta de plugins",
   "No plugins found.": "Nenhum plugin encontrado.",
   running: "rodando",

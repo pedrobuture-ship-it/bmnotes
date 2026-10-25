@@ -114,8 +114,12 @@ export function App() {
   useEffect(() => {
     const flush = () => void useWorkspace.getState().flushAll();
     window.addEventListener("beforeunload", flush);
-    document.addEventListener("visibilitychange", () => document.hidden && flush());
-    return () => window.removeEventListener("beforeunload", flush);
+    const visibility = () => { if (document.hidden) flush(); };
+    document.addEventListener("visibilitychange", visibility);
+    return () => {
+      window.removeEventListener("beforeunload", flush);
+      document.removeEventListener("visibilitychange", visibility);
+    };
   }, []);
 
   return (

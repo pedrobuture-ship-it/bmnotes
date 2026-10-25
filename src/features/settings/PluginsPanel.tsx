@@ -3,16 +3,16 @@ import { ipc } from "@/lib/ipc";
 import { useTr } from "@/lib/i18n";
 import { usePlugins } from "@/stores/plugins";
 
-const EXAMPLE = `bm.command("today", "Insert today's date", async () => {
-  const title = await bm.prompt("Note to append to");
-  const notes = await bm.notes.list();
+const EXAMPLE = `bmnotes.command("today", "Insert today's date", async () => {
+  const title = await bmnotes.prompt("Note to append to");
+  const notes = await bmnotes.notes.list();
   const hit = notes.find((n) => n.title === title);
-  if (!hit) return bm.toast("No note called " + title);
-  const text = await bm.notes.read(hit.path);
-  await bm.notes.write(hit.path, text + "\\n" + new Date().toISOString().slice(0, 10) + "\\n");
+  if (!hit) return bmnotes.toast("No note called " + title);
+  const text = await bmnotes.notes.read(hit.path);
+  await bmnotes.notes.write(hit.path, text + "\\n" + new Date().toISOString().slice(0, 10) + "\\n");
 });`;
 
-/** Plugins are small scripts in .mural/plugins/. Each one needs your approval and runs in an isolated worker. */
+/** Plugins are small scripts in .bmnotes/plugins/. Each one needs your approval and runs in an isolated worker. */
 export function PluginsPanel() {
   const tr = useTr();
   const { plugins, approve, revoke, load } = usePlugins();
@@ -27,7 +27,7 @@ export function PluginsPanel() {
   return (
     <>
       <p className="m-0" style={{ color: "var(--ink-dim)" }}>
-        {tr("Plugins add commands to the palette (Ctrl+K). They are plain .js files in .mural/plugins/ that run in an isolated worker with no network and no access to your computer: only the notes API below. They are never synced. Each file needs your approval, and changing it asks again.")}
+        {tr("Plugins add commands to the palette (Ctrl+K). They are plain .js files in .bmnotes/plugins/ that run in an isolated worker with no network and no access to your computer: only the notes API below. They are never synced. Each file needs your approval, and changing it asks again.")}
       </p>
       <div className="flex gap-2" style={{ margin: "10px 0" }}>
         <button className="btn" onClick={() => void openFolder()}>{tr("Open plugins folder")}</button>
@@ -47,7 +47,7 @@ export function PluginsPanel() {
       ))}
       <details style={{ marginTop: 12 }}>
         <summary>{tr("API and example")}</summary>
-        <pre className="selectable" style={{ background: "var(--surface-2)", padding: 10, borderRadius: 6, fontSize: "0.8rem", overflow: "auto" }}>{`bm.command(id, label, fn)   // add a palette command\nbm.toast(text)\nbm.openNote(path)\nawait bm.prompt(title)\nawait bm.notes.list()       // [{ path, title }]\nawait bm.notes.read(path)\nawait bm.notes.write(path, text)\nawait bm.notes.create(name, text)\n\n${EXAMPLE}`}</pre>
+        <pre className="selectable" style={{ background: "var(--surface-2)", padding: 10, borderRadius: 6, fontSize: "0.8rem", overflow: "auto" }}>{`bmnotes.command(id, label, fn)   // add a palette command\nbmnotes.toast(text)\nbmnotes.openNote(path)\nawait bmnotes.prompt(title)\nawait bmnotes.notes.list()       // [{ path, title }]\nawait bmnotes.notes.read(path)\nawait bmnotes.notes.write(path, text)\nawait bmnotes.notes.create(name, text)\n\n${EXAMPLE}`}</pre>
       </details>
     </>
   );

@@ -12,13 +12,13 @@ use std::process::Command;
 
 type Res<T> = Result<T, String>;
 
-const IGNORE_LINES: [&str; 6] = [".mural/settings.json", ".mural/sync.json", ".mural/backups/", ".mural/trash/", ".mural/plugins/", ".mural/*.corrupt.json"];
+const IGNORE_LINES: [&str; 6] = [".bmnotes/settings.json", ".bmnotes/sync.json", ".bmnotes/backups/", ".bmnotes/trash/", ".bmnotes/plugins/", ".bmnotes/*.corrupt.json"];
 const LARGE_FILE: u64 = 10 * 1024 * 1024;
-const BOARD: &str = ".mural/board.json";
+const BOARD: &str = ".bmnotes/board.json";
 
 /// Board layout files that merge per card: the main mural, the extra murals and their index.
 fn is_board_path(p: &str) -> bool {
-    p == BOARD || p == ".mural/boards.json" || (p.starts_with(".mural/boards/") && p.ends_with(".json"))
+    p == BOARD || p == ".bmnotes/boards.json" || (p.starts_with(".bmnotes/boards/") && p.ends_with(".json"))
 }
 
 #[derive(Serialize, Default, Clone, Debug)]
@@ -84,7 +84,7 @@ impl Git {
             cmd.arg("-c").arg(format!("http.https://github.com/.extraheader=Authorization: Basic {a}"));
         }
         if !self.identity {
-            cmd.args(["-c", "user.name=b&m notes", "-c", "user.email=notes@bm-notes.local"]);
+            cmd.args(["-c", "user.name=bmnotes", "-c", "user.email=notes@bmnotes.local"]);
         }
         let mut child = cmd.args(args).spawn().map_err(|e| {
             if e.kind() == std::io::ErrorKind::NotFound { "Git is not installed.".to_string() } else { e.to_string() }

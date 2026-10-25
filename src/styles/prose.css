@@ -48,3 +48,9 @@
 .md-prose pre.mermaid-error { border: 2px dashed #a3402b; }
 .md-prose audio { display: block; width: 100%; max-width: 420px; margin: 8px 0; }
 .md-prose a.attachment::before { content: "📎 "; }
+
+/* Large note pages skip layout/paint for blocks far outside the scroll viewport. */
+.note-preview-wrap .md-prose > * {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 3rem;
+}

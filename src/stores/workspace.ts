@@ -45,12 +45,12 @@ interface WorkspaceState {
   syncWithDisk: () => Promise<void>;
 }
 
-const LAST_KEY = "mural:lastWorkspace";
+const LAST_KEY = "bmnotes:lastWorkspace";
 const EMPTY_INDEX: NoteIndex = buildIndex([]);
 
 export function getLastWorkspace(): string | null {
   try {
-    return localStorage.getItem(LAST_KEY);
+    return localStorage.getItem(LAST_KEY) ?? localStorage.getItem("mural:lastWorkspace");
   } catch {
     return null;
   }
@@ -58,7 +58,7 @@ export function getLastWorkspace(): string | null {
 function setLastWorkspace(p: string | null) {
   try {
     if (p) localStorage.setItem(LAST_KEY, p);
-    else localStorage.removeItem(LAST_KEY);
+    else { localStorage.removeItem(LAST_KEY); localStorage.removeItem("mural:lastWorkspace"); }
   } catch {
     /* storage unavailable */
   }
@@ -66,9 +66,11 @@ function setLastWorkspace(p: string | null) {
 
 const saveTimers = new Map<string, ReturnType<typeof setTimeout>>();
 let inFlight = 0;
+const saveJobs = new Map<string, Promise<void>>();
 let indexTimer: ReturnType<typeof setTimeout> | undefined;
 const indexDirty = new Set<string>();
-let syncChain: Promise<void> = Promise.resolve();
+let syncChain: Promise<void> | null = null;
+let syncPending = false;
 let unlisten: (() => void) | null = null;
 let session = 0;
 
@@ -115,11 +117,16 @@ export const useWorkspace = create<WorkspaceState>((set, get) => {
     const tree = await ipc.scan(ignored());
     if (mySession !== session) return;
     const onDisk = new Set(flattenPaths(tree));
-    const notes = { ...get().notes };
-    const missing = [...onDisk].filter((p) => !notes[p]);
-    const loaded = await Promise.all(missing.map((p) => ipc.readNote(p).catch(() => null)));
+    const missing = [...onDisk].filter((p) => !get().notes[p]);
+    const loaded: (NoteFile | null)[] = [];
+    for (let i = 0; i < missing.length; i += 8) {
+      loaded.push(...await Promise.all(missing.slice(i, i + 8).map((p) => ipc.readNote(p).catch(() => null))));
+      if (mySession !== session) return;
+    }
     if (mySession !== session) return;
-    for (const f of loaded) if (f) notes[f.path] = toState(f);
+    // Edits can happen while IPC reads are in flight; merge into the latest state.
+    const notes = { ...get().notes };
+    for (const f of loaded) if (f && !notes[f.path]) notes[f.path] = toState(f);
     let gone = 0;
     for (const p of Object.keys(notes)) {
       if (onDisk.has(p)) continue;
@@ -128,9 +135,13 @@ export const useWorkspace = create<WorkspaceState>((set, get) => {
       delete notes[p];
       gone++;
     }
-    set({ tree, notes });
-    fullReindex();
-    useBoard.getState().syncPaths(Object.keys(notes));
+    const pathsChanged = gone > 0 || loaded.some((f) => f !== null);
+    if (JSON.stringify(tree) !== JSON.stringify(get().tree)) set({ tree });
+    if (pathsChanged) {
+      set({ notes });
+      fullReindex();
+      useBoard.getState().syncPaths(Object.keys(notes));
+    }
     const ui = useUi.getState();
     if (ui.activeNote && !notes[ui.activeNote]) {
       ui.closeNote();
@@ -139,11 +150,21 @@ export const useWorkspace = create<WorkspaceState>((set, get) => {
   };
 
   const queueSync = () => {
-    syncChain = syncChain.then(() => syncWithDisk()).catch(errorToast);
+    syncPending = true;
+    if (!syncChain) {
+      syncChain = Promise.resolve().then(async () => {
+        try {
+          while (syncPending) {
+            syncPending = false;
+            try { await syncWithDisk(); } catch (e) { errorToast(e); }
+          }
+        } finally { syncChain = null; }
+      });
+    }
     return syncChain;
   };
 
-  const doSave = async (path: string) => {
+  const performSave = async (path: string) => {
     const n = get().notes[path];
     if (!n || n.content === n.saved) return;
     const snapshot = n.content;
@@ -164,6 +185,14 @@ export const useWorkspace = create<WorkspaceState>((set, get) => {
     }
   };
 
+  // Autosave and Ctrl+S can overlap; serialize writes to the same atomic temp file.
+  const doSave = (path: string): Promise<void> => {
+    const job = (saveJobs.get(path) ?? Promise.resolve()).then(() => performSave(path));
+    saveJobs.set(path, job);
+    void job.finally(() => { if (saveJobs.get(path) === job) saveJobs.delete(path); });
+    return job;
+  };
+
   return {
     info: null,
     loading: false,
@@ -177,6 +206,8 @@ export const useWorkspace = create<WorkspaceState>((set, get) => {
       set({ loading: true, error: null });
       try {
         await get().flushAll();
+        clearTimeout(indexTimer);
+        indexDirty.clear();
         session++;
         const info = await ipc.openWorkspace(path);
         useBoard.getState().reset();
@@ -208,6 +239,8 @@ export const useWorkspace = create<WorkspaceState>((set, get) => {
 
     closeWorkspace: async () => {
       await get().flushAll();
+      clearTimeout(indexTimer);
+      indexDirty.clear();
       session++;
       unlisten?.();
       unlisten = null;
@@ -248,7 +281,8 @@ export const useWorkspace = create<WorkspaceState>((set, get) => {
         clearTimeout(saveTimers.get(p));
         saveTimers.delete(p);
       }
-      await Promise.all(paths.map(doSave));
+      const scheduled = paths.map(doSave);
+      await Promise.all([...scheduled, ...saveJobs.values()]);
     },
 
     createNote: async (dir, name, content = "") => {
@@ -352,12 +386,15 @@ export const useWorkspace = create<WorkspaceState>((set, get) => {
     handleFsChange: async (c) => {
       if (c.structure || c.removed.length) await queueSync();
       for (const p of c.changed) {
-        const cur = get().notes[p];
+        const mySession = session;
         try {
           const f = await ipc.readNote(p);
+          if (mySession !== session) return;
+          const cur = get().notes[p];
           if (!cur) {
             set((s) => ({ notes: { ...s.notes, [p]: toState(f) } }));
           } else if (f.content === cur.content) {
+            if (cur.saved === f.content && cur.mtime === f.mtime && cur.conflict === null) continue;
             set((s) => ({ notes: { ...s.notes, [p]: { ...cur, saved: f.content, mtime: f.mtime, conflict: null } } }));
             continue;
           } else if (cur.content !== cur.saved) {

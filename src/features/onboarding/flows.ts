@@ -16,7 +16,7 @@ const DEMO: { name: string; content: string; x: number; y: number; color: "paper
   {
     name: "Welcome",
     x: 0, y: 0, color: "yellow",
-    content: `# Welcome to b&m notes\n\nYour notes are just files. Every card on this mural is a plain \`.md\` file in this folder.\n\n- Double-click empty space to create a note\n- Double-click a card to edit it in place\n- Link notes with [[Ideas]] and [[Architecture]]\n\n- [ ] Try ticking this checkbox\n- [x] Open MURAL.md\n\n#start\n`,
+    content: `# Welcome to bmnotes\n\nYour notes are just files. Every card on this mural is a plain \`.md\` file in this folder.\n\n- Double-click empty space to create a note\n- Double-click a card to edit it in place\n- Link notes with [[Ideas]] and [[Architecture]]\n\n- [ ] Try ticking this checkbox\n- [x] Open MURAL.md\n\n#start\n`,
   },
   {
     name: "Ideas",
@@ -26,7 +26,7 @@ const DEMO: { name: string; content: string; x: number; y: number; color: "paper
   {
     name: "Architecture",
     x: 380, y: 280, color: "blue",
-    content: `# Architecture\n\n- Markdown files are the source of truth\n- Visual layout lives in \`.mural/board.json\`\n- Tauri + Rust for the filesystem, React for the canvas\n\nRelated: [[Ideas]], [[Welcome]]\n\n#project\n`,
+    content: `# Architecture\n\n- Markdown files are the source of truth\n- Visual layout lives in \`.bmnotes/board.json\`\n- Tauri + Rust for the filesystem, React for the canvas\n\nRelated: [[Ideas]], [[Welcome]]\n\n#project\n`,
   },
   {
     name: "Roadmap",
