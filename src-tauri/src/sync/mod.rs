@@ -8,7 +8,7 @@ pub use commands::*;
 
 use serde::Serialize;
 use std::path::{Path, PathBuf};
-use std::process::Command;
+use std::process::{Command, Stdio};
 
 type Res<T> = Result<T, String>;
 
@@ -53,9 +53,23 @@ struct Out {
     stderr: String,
 }
 
+/// All Git subprocesses are background work, including identity/version probes.
+fn git_command() -> Command {
+    let mut command = Command::new("git");
+    command.env("GIT_TERMINAL_PROMPT", "0").stdin(Stdio::null());
+    #[cfg(windows)]
+    {
+        use std::os::windows::process::CommandExt;
+        // https://learn.microsoft.com/en-us/windows/win32/procthread/process-creation-flags
+        const CREATE_NO_WINDOW: u32 = 0x0800_0000;
+        command.creation_flags(CREATE_NO_WINDOW);
+    }
+    command
+}
+
 impl Git {
     pub fn new(root: &Path, auth: Option<String>) -> Self {
-        let identity = Command::new("git")
+        let identity = git_command()
             .current_dir(root)
             .args(["config", "user.email"])
             .output()
@@ -71,10 +85,8 @@ impl Git {
     /// Like `raw`, feeding `input` to git's stdin.
     fn raw_in(&self, args: &[&str], input: Option<&[u8]>) -> Res<Out> {
         use std::io::Write;
-        use std::process::Stdio;
-        let mut cmd = Command::new("git");
+        let mut cmd = git_command();
         cmd.current_dir(&self.root)
-            .env("GIT_TERMINAL_PROMPT", "0")
             .env("GIT_ALLOW_PROTOCOL", "https:file")
             .env("LC_ALL", "C")
             .stdin(if input.is_some() { Stdio::piped() } else { Stdio::null() })
@@ -151,7 +163,7 @@ impl Git {
     }
 
     pub fn status(&self) -> SyncState {
-        let mut s = SyncState { git_available: Command::new("git").arg("--version").output().is_ok(), ..Default::default() };
+        let mut s = SyncState { git_available: git_command().arg("--version").output().is_ok(), ..Default::default() };
         if !s.git_available || !self.is_repo() {
             return s;
         }

@@ -64,6 +64,8 @@ The app goes online only for things you switch on yourself:
 
 Turn sync off (Settings → Sync → Unlink) and the app is fully offline again. Nothing is deleted.
 
+On Windows, all background Git commands run without creating console windows, including status checks, sync and presence.
+
 ## Your data
 
 ```
